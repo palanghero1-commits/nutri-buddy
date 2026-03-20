@@ -3,7 +3,10 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import AppLayout from "@/components/AppLayout";
+import { AuthProvider } from "@/hooks/useAuth";
+import AdminRoute from "@/components/AdminRoute";
+import HomePage from "@/pages/HomePage";
+import AdminLogin from "@/pages/AdminLogin";
 import Dashboard from "@/pages/Dashboard";
 import ChildrenList from "@/pages/ChildrenList";
 import MealTracker from "@/pages/MealTracker";
@@ -20,20 +23,26 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <AppLayout>
+      <AuthProvider>
+        <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/children" element={<ChildrenList />} />
-            <Route path="/meals" element={<MealTracker />} />
-            <Route path="/growth" element={<GrowthMonitor />} />
-            <Route path="/alerts" element={<AlertsPage />} />
-            <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/assistant" element={<AIAssistant />} />
+            {/* Public routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+
+            {/* Admin routes */}
+            <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
+            <Route path="/admin/children" element={<AdminRoute><ChildrenList /></AdminRoute>} />
+            <Route path="/admin/meals" element={<AdminRoute><MealTracker /></AdminRoute>} />
+            <Route path="/admin/growth" element={<AdminRoute><GrowthMonitor /></AdminRoute>} />
+            <Route path="/admin/alerts" element={<AdminRoute><AlertsPage /></AdminRoute>} />
+            <Route path="/admin/reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
+            <Route path="/admin/assistant" element={<AdminRoute><AIAssistant /></AdminRoute>} />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </AppLayout>
-      </BrowserRouter>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
