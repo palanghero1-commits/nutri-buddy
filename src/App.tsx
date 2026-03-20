@@ -5,8 +5,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import AdminRoute from "@/components/AdminRoute";
+import UserRoute from "@/components/UserRoute";
 import HomePage from "@/pages/HomePage";
 import AdminLogin from "@/pages/AdminLogin";
+import UserLogin from "@/pages/UserLogin";
+import UserRegister from "@/pages/UserRegister";
+import UserPortal from "@/pages/UserPortal";
 import Dashboard from "@/pages/Dashboard";
 import ChildrenList from "@/pages/ChildrenList";
 import MealTracker from "@/pages/MealTracker";
@@ -29,6 +33,8 @@ const App = () => (
             {/* Public routes */}
             <Route path="/" element={<HomePage />} />
             <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/user/login" element={<UserLogin />} />
+            <Route path="/user/register" element={<UserRegister />} />
 
             {/* Admin routes */}
             <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
@@ -38,6 +44,7 @@ const App = () => (
             <Route path="/admin/alerts" element={<AdminRoute><AlertsPage /></AdminRoute>} />
             <Route path="/admin/reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
             <Route path="/admin/assistant" element={<AdminRoute><AIAssistant /></AdminRoute>} />
+            <Route path="/user" element={<UserRoute><UserPortal /></UserRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
