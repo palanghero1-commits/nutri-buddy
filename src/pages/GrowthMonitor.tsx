@@ -1,11 +1,18 @@
-import { children, growthData } from "@/lib/mockData";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { useNutriData } from "@/hooks/useNutriData";
 
 export default function GrowthMonitor() {
-  const [selectedChild, setSelectedChild] = useState("1");
+  const { children, growthData } = useNutriData();
+  const [selectedChild, setSelectedChild] = useState("");
   const child = children.find((c) => c.id === selectedChild);
   const records = growthData[selectedChild] || [];
+
+  useEffect(() => {
+    if (!selectedChild && children.length > 0) {
+      setSelectedChild(children[0].id);
+    }
+  }, [children, selectedChild]);
 
   return (
     <div>

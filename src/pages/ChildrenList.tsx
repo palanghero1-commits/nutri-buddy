@@ -1,8 +1,9 @@
-import { children } from "@/lib/mockData";
-import { Search, Plus, Scale, Ruler, Activity } from "lucide-react";
+import { Search, Scale, Ruler, Activity } from "lucide-react";
 import { useState } from "react";
+import { useNutriData } from "@/hooks/useNutriData";
 
 export default function ChildrenList() {
+  const { children } = useNutriData();
   const [search, setSearch] = useState("");
   const filtered = children.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
@@ -15,9 +16,9 @@ export default function ChildrenList() {
           <h1 className="text-2xl font-bold">Children Profiles</h1>
           <p className="text-muted-foreground mt-1">Manage and monitor registered children</p>
         </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 active:scale-[0.97] transition-all">
-          <Plus className="w-4 h-4" /> Add Child
-        </button>
+        <div className="rounded-lg bg-muted px-4 py-2 text-sm text-muted-foreground">
+          User submissions sync here automatically
+        </div>
       </div>
 
       <div className="relative mt-6 section-enter stagger-1">

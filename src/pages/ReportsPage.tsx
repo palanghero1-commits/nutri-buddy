@@ -1,15 +1,16 @@
-import { children, dashboardStats } from "@/lib/mockData";
-import { FileText, Download, BarChart3 } from "lucide-react";
+import { FileText, Download } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-
-const statusChart = [
-  { status: "Normal", count: dashboardStats.normalCount },
-  { status: "Underweight", count: dashboardStats.underweightCount },
-  { status: "Overweight", count: dashboardStats.overweightCount },
-  { status: "Stunted", count: dashboardStats.stuntedCount },
-];
+import { useNutriData } from "@/hooks/useNutriData";
 
 export default function ReportsPage() {
+  const { children, dashboardStats } = useNutriData();
+  const statusChart = [
+    { status: "Normal", count: dashboardStats.normalCount },
+    { status: "Underweight", count: dashboardStats.underweightCount },
+    { status: "Overweight", count: dashboardStats.overweightCount },
+    { status: "Stunted", count: dashboardStats.stuntedCount },
+  ];
+
   return (
     <div>
       <div className="section-enter">
@@ -27,7 +28,7 @@ export default function ReportsPage() {
                 <XAxis dataKey="status" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="count" fill="hsl(152, 44%, 42%)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="count" fill="#192853" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

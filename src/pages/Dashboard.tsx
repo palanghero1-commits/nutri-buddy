@@ -1,17 +1,17 @@
 import { Users, Utensils, AlertTriangle, TrendingUp, Heart, Scale, Ruler, Activity } from "lucide-react";
-import { dashboardStats, children, alerts } from "@/lib/mockData";
 import { Link } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-
-const statusData = [
-  { name: "Normal", value: dashboardStats.normalCount, color: "hsl(152, 55%, 40%)" },
-  { name: "Underweight", value: dashboardStats.underweightCount, color: "hsl(38, 92%, 50%)" },
-  { name: "Overweight", value: dashboardStats.overweightCount, color: "hsl(12, 76%, 62%)" },
-  { name: "Stunted", value: dashboardStats.stuntedCount, color: "hsl(0, 72%, 51%)" },
-];
+import { useNutriData } from "@/hooks/useNutriData";
 
 export default function Dashboard() {
+  const { dashboardStats, children, alerts } = useNutriData();
   const unreadAlerts = alerts.filter((a) => !a.read);
+  const statusData = [
+    { name: "Normal", value: dashboardStats.normalCount, color: "#192853" },
+    { name: "Underweight", value: dashboardStats.underweightCount, color: "#FFE14E" },
+    { name: "Overweight", value: dashboardStats.overweightCount, color: "#8FB3C9" },
+    { name: "Stunted", value: dashboardStats.stuntedCount, color: "#EF4444" },
+  ];
 
   return (
     <div>
@@ -72,7 +72,7 @@ export default function Dashboard() {
         <div className="stat-card section-enter stagger-4 lg:col-span-1">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-foreground">Recent Children</h2>
-            <Link to="/children" className="text-xs text-primary hover:underline">View all</Link>
+            <Link to="/admin/children" className="text-xs text-primary hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
             {children.slice(0, 4).map((child) => (
@@ -101,10 +101,10 @@ export default function Dashboard() {
         <div className="stat-card section-enter stagger-5 lg:col-span-1">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-foreground">Recent Alerts</h2>
-            <Link to="/alerts" className="text-xs text-primary hover:underline">View all</Link>
+            <Link to="/admin/alerts" className="text-xs text-primary hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
-            {alerts.slice(0, 4).map((alert) => (
+            {(unreadAlerts.length > 0 ? unreadAlerts : alerts).slice(0, 4).map((alert) => (
               <div key={alert.id} className={`p-3 rounded-lg border text-sm ${
                 alert.type === "critical" ? "border-destructive/30 bg-destructive/5" :
                 alert.type === "warning" ? "border-warning/30 bg-warning/5" :

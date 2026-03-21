@@ -1,6 +1,6 @@
-import { mealEntries, children } from "@/lib/mockData";
-import { Plus, UtensilsCrossed } from "lucide-react";
+import { UtensilsCrossed } from "lucide-react";
 import { useState } from "react";
+import { useNutriData } from "@/hooks/useNutriData";
 
 const mealColors: Record<string, string> = {
   Breakfast: "bg-peach",
@@ -10,6 +10,7 @@ const mealColors: Record<string, string> = {
 };
 
 export default function MealTracker() {
+  const { mealEntries, children } = useNutriData();
   const [selectedChild, setSelectedChild] = useState("all");
 
   const filtered = selectedChild === "all"
@@ -25,9 +26,9 @@ export default function MealTracker() {
           <h1 className="text-2xl font-bold">Meal Tracker</h1>
           <p className="text-muted-foreground mt-1">Track daily food intake and nutrition</p>
         </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 active:scale-[0.97] transition-all">
-          <Plus className="w-4 h-4" /> Log Meal
-        </button>
+        <div className="rounded-lg bg-muted px-4 py-2 text-sm text-muted-foreground">
+          Meal entries come from the user portal
+        </div>
       </div>
 
       <div className="mt-6 section-enter stagger-1">

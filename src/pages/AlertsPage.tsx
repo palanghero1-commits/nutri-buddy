@@ -1,5 +1,5 @@
-import { alerts } from "@/lib/mockData";
 import { AlertTriangle, Info, AlertCircle, Check } from "lucide-react";
+import { useNutriData } from "@/hooks/useNutriData";
 
 const iconMap = {
   warning: AlertTriangle,
@@ -8,6 +8,8 @@ const iconMap = {
 };
 
 export default function AlertsPage() {
+  const { alerts } = useNutriData();
+
   return (
     <div>
       <div className="section-enter">
