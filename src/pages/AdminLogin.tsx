@@ -46,10 +46,10 @@ export default function AdminLogin() {
             Nutri-Track Admin Portal
           </h2>
           <p className="text-primary-foreground/70 mt-4 leading-relaxed">
-            Access the dashboard to monitor children's health, manage records, generate reports, and leverage AI-powered nutrition recommendations for Barangay Tinampa-an.
+            Access the dashboard to monitor children's health, manage records, and generate reports for Barangay Tinampa-an.
           </p>
           <div className="mt-10 space-y-4">
-            {["Manage children's health records", "Track meals and growth data", "Generate health reports", "AI nutrition assistant"].map((item) => (
+            {["Manage children's health records", "Track meals and growth data", "Generate health reports"].map((item) => (
               <div key={item} className="flex items-center gap-3 text-primary-foreground/80 text-sm">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground/50" />
                 {item}

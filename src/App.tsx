@@ -18,7 +18,6 @@ import MealTracker from "@/pages/MealTracker";
 import GrowthMonitor from "@/pages/GrowthMonitor";
 import AlertsPage from "@/pages/AlertsPage";
 import ReportsPage from "@/pages/ReportsPage";
-import AIAssistant from "@/pages/AIAssistant";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,7 +44,6 @@ const App = () => (
               <Route path="/admin/growth" element={<AdminRoute><GrowthMonitor /></AdminRoute>} />
               <Route path="/admin/alerts" element={<AdminRoute><AlertsPage /></AdminRoute>} />
               <Route path="/admin/reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
-              <Route path="/admin/assistant" element={<AdminRoute><AIAssistant /></AdminRoute>} />
               <Route path="/user" element={<UserRoute><UserPortal /></UserRoute>} />
 
               <Route path="*" element={<NotFound />} />

@@ -152,7 +152,7 @@ export default function UserPortal() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <Link to="/" className="flex items-center gap-2.5">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Leaf className="h-5 w-5" />
@@ -165,7 +165,7 @@ export default function UserPortal() {
 
           <button
             onClick={logout}
-            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted sm:w-auto"
           >
             <LogOut className="h-4 w-4" />
             Logout
@@ -173,11 +173,11 @@ export default function UserPortal() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-10">
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-3xl border border-border/60 bg-gradient-to-br from-peach/45 via-background to-sage/30 p-8 shadow-sm">
+          <div className="rounded-3xl border border-border/60 bg-gradient-to-br from-peach/45 via-background to-sage/30 p-6 shadow-sm sm:p-8">
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Shared Data Entry</p>
-            <h1 className="mt-3 text-4xl font-bold leading-tight text-foreground">
+            <h1 className="mt-3 text-3xl font-bold leading-tight text-foreground sm:text-4xl">
               Welcome, {currentUser?.name.split(" ")[0]}
             </h1>
             <p className="mt-4 max-w-2xl text-muted-foreground">
@@ -491,7 +491,7 @@ export default function UserPortal() {
                 <div className="mt-4 space-y-3">
                   {myChildren.map((child) => (
                     <div key={child.id} className="rounded-2xl bg-muted/60 p-4">
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <p className="font-semibold text-foreground">{child.name}</p>
                           <p className="text-xs text-muted-foreground">{child.age} yrs, {child.gender}</p>

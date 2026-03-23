@@ -21,7 +21,7 @@ export default function ReportsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <div className="stat-card section-enter stagger-1">
           <h2 className="font-semibold mb-4">Status Distribution</h2>
-          <div className="h-64">
+          <div className="h-56 sm:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={statusChart}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(40, 18%, 88%)" />
@@ -43,12 +43,12 @@ export default function ReportsPage() {
               "Underweight Children Alert List",
               "Feeding Program Recommendations",
             ].map((report) => (
-              <div key={report} className="flex items-center justify-between p-3 rounded-lg bg-muted hover:bg-muted/70 transition-colors cursor-pointer group">
-                <div className="flex items-center gap-3">
+              <div key={report} className="group flex flex-col gap-3 rounded-lg bg-muted p-3 transition-colors hover:bg-muted/70 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
                   <FileText className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium">{report}</span>
                 </div>
-                <Download className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Download className="h-4 w-4 shrink-0 text-muted-foreground opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100" />
               </div>
             ))}
           </div>
@@ -59,7 +59,7 @@ export default function ReportsPage() {
       <div className="stat-card mt-6 section-enter stagger-3">
         <h2 className="font-semibold mb-4">Children Summary Table</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="min-w-[720px] w-full text-sm">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">Name</th>

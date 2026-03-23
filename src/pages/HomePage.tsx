@@ -51,14 +51,14 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
               <Leaf className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-lg font-bold tracking-tight text-foreground">Nutri-Track</span>
+            <span className="text-base font-bold tracking-tight text-foreground sm:text-lg">Nutri-Track</span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <a href="#features" className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:block">Features</a>
             <a href="#about" className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:block">About</a>
             <Link
@@ -69,7 +69,7 @@ export default function HomePage() {
             </Link>
             <Link
               to="/admin/login"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:opacity-90 active:scale-[0.97]"
+              className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-all hover:opacity-90 active:scale-[0.97] sm:px-4"
             >
               Admin Login
             </Link>
@@ -77,42 +77,42 @@ export default function HomePage() {
         </div>
       </nav>
 
-      <section className="px-6 pb-16 pt-28">
+      <section className="px-4 pb-16 pt-24 sm:px-6 sm:pt-28">
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-2">
           <div className="section-enter">
             <span className="mb-6 inline-block rounded-full bg-sage px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
               Barangay Tinampa-an, Cadiz City
             </span>
-            <h1 className="text-4xl font-bold leading-[1.1] text-foreground sm:text-5xl">
+            <h1 className="text-3xl font-bold leading-[1.1] text-foreground sm:text-5xl">
               Nourishing Every Child&apos;s Future
             </h1>
-            <p className="mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground">
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
               A digital health monitoring system designed to track children&apos;s nutritional intake, growth, and overall well-being -
               empowering parents, guardians, and health professionals.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
                 to="/user/register"
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground transition-all hover:opacity-90 active:scale-[0.97]"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground transition-all hover:opacity-90 active:scale-[0.97]"
               >
                 Create User Account <ArrowRight className="h-4 w-4" />
               </Link>
               <a
                 href="#features"
-                className="inline-flex items-center gap-2 rounded-lg border border-border px-6 py-3 font-medium text-foreground transition-all hover:bg-muted active:scale-[0.97]"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 font-medium text-foreground transition-all hover:bg-muted active:scale-[0.97]"
               >
                 Learn More <ArrowRight className="h-4 w-4" />
               </a>
               <Link
                 to="/admin/login"
-                className="inline-flex items-center gap-2 rounded-lg border border-border px-6 py-3 font-medium text-foreground transition-all hover:bg-muted active:scale-[0.97]"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 font-medium text-foreground transition-all hover:bg-muted active:scale-[0.97]"
               >
                 Admin Portal <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
           <div className="section-enter stagger-2">
-            <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-sage/40 via-background to-peach/30 p-6 shadow-xl">
+            <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-sage/40 via-background to-peach/30 p-4 shadow-xl sm:p-6">
               <div className="absolute -left-12 -top-12 h-36 w-36 rounded-full bg-primary/10 blur-3xl" />
               <div className="absolute -bottom-10 -right-8 h-40 w-40 rounded-full bg-coral-light/30 blur-3xl" />
               <div className="relative grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
@@ -184,7 +184,7 @@ export default function HomePage() {
       </section>
 
       <section className="bg-primary py-10">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-6 md:grid-cols-4">
+        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 sm:px-6 md:grid-cols-4 md:gap-8">
           {stats.map((stat, i) => (
             <div key={stat.label} className={`section-enter text-center stagger-${i + 1}`}>
               <p className="text-3xl font-bold text-primary-foreground">{stat.value}</p>
@@ -194,7 +194,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="features" className="px-6 py-20">
+      <section id="features" className="px-4 py-20 sm:px-6">
         <div className="mx-auto max-w-6xl">
           <div className="section-enter mx-auto max-w-xl text-center">
             <h2 className="text-3xl font-bold text-foreground">Comprehensive Health Monitoring</h2>
@@ -214,7 +214,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="about" className="bg-muted/50 px-6 py-20">
+      <section id="about" className="bg-muted/50 px-4 py-20 sm:px-6">
         <div className="section-enter mx-auto max-w-3xl text-center">
           <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">
             <Users className="h-7 w-7 text-primary-foreground" />
@@ -229,7 +229,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="border-t border-border px-6 py-10">
+      <footer className="border-t border-border px-4 py-10 sm:px-6">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
           <div className="flex items-center gap-2">
             <Leaf className="h-4 w-4 text-primary" />

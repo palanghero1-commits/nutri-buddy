@@ -11,12 +11,12 @@ export default function ChildrenList() {
 
   return (
     <div>
-      <div className="flex items-center justify-between section-enter">
+      <div className="section-enter flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Children Profiles</h1>
           <p className="text-muted-foreground mt-1">Manage and monitor registered children</p>
         </div>
-        <div className="rounded-lg bg-muted px-4 py-2 text-sm text-muted-foreground">
+        <div className="w-full rounded-lg bg-muted px-4 py-2 text-sm text-muted-foreground sm:w-auto">
           User submissions sync here automatically
         </div>
       </div>
@@ -39,7 +39,7 @@ export default function ChildrenList() {
               <div className="w-12 h-12 rounded-full bg-sage flex items-center justify-center text-sm font-bold text-sage-deep group-hover:scale-105 transition-transform">
                 {child.avatar}
               </div>
-              <div>
+              <div className="min-w-0">
                 <h3 className="font-semibold text-foreground">{child.name}</h3>
                 <p className="text-xs text-muted-foreground">{child.age} years old • {child.gender}</p>
               </div>
@@ -63,7 +63,7 @@ export default function ChildrenList() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                 child.status === "Normal" ? "bg-sage text-sage-deep" :
                 child.status === "Underweight" ? "bg-peach text-warning-foreground" :
@@ -72,7 +72,7 @@ export default function ChildrenList() {
               }`}>
                 {child.status}
               </span>
-              <span className="text-xs text-muted-foreground">Parent: {child.parentName}</span>
+              <span className="break-words text-xs text-muted-foreground">Parent: {child.parentName}</span>
             </div>
           </div>
         ))}

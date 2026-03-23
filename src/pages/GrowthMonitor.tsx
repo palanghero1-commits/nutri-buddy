@@ -25,7 +25,7 @@ export default function GrowthMonitor() {
         <select
           value={selectedChild}
           onChange={(e) => setSelectedChild(e.target.value)}
-          className="px-4 py-2.5 rounded-lg border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring/30"
+          className="w-full rounded-lg border border-input bg-card px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 sm:w-auto sm:min-w-[220px]"
         >
           {children.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
@@ -39,7 +39,7 @@ export default function GrowthMonitor() {
           <div className="stat-card lg:col-span-2 section-enter stagger-2">
             <h2 className="font-semibold mb-4">Growth Trend — {child.name}</h2>
             {records.length > 0 ? (
-              <div className="h-72">
+              <div className="h-64 sm:h-72">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={records}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(40, 18%, 88%)" />

@@ -41,7 +41,7 @@ export default function AlertsPage() {
                 }`} />
               </div>
               <div className="flex-1">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <h3 className="font-semibold text-sm">{alert.childName}</h3>
                   <span className="text-xs text-muted-foreground">{alert.date}</span>
                 </div>
