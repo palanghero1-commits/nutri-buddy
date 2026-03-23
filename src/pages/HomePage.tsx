@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Leaf, UtensilsCrossed, TrendingUp, Bell, Bot, Shield, Heart, Users, ArrowRight, ChevronRight } from "lucide-react";
+import { Leaf, UtensilsCrossed, TrendingUp, Bell, Shield, Heart, Users, ArrowRight, ChevronRight } from "lucide-react";
 
 const features = [
   {
@@ -19,12 +19,6 @@ const features = [
     title: "Smart Alerts",
     description: "Receive timely notifications for nutritional concerns and health recommendations.",
     color: "bg-coral-light",
-  },
-  {
-    icon: Bot,
-    title: "AI Nutrition Assistant",
-    description: "Get personalized meal plans and nutrition advice powered by artificial intelligence.",
-    color: "bg-sky",
   },
   {
     icon: Shield,
@@ -200,9 +194,12 @@ export default function HomePage() {
             <h2 className="text-3xl font-bold text-foreground">Comprehensive Health Monitoring</h2>
             <p className="mt-3 text-muted-foreground">Everything you need to track and improve children&apos;s nutritional health in one place.</p>
           </div>
-          <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-12 flex flex-wrap justify-center gap-6">
             {features.map((feat, i) => (
-              <div key={feat.title} className={`stat-card section-enter group stagger-${(i % 5) + 1}`}>
+              <div
+                key={feat.title}
+                className={`stat-card section-enter group w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)] lg:max-w-[380px] stagger-${(i % 5) + 1}`}
+              >
                 <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${feat.color} transition-transform group-hover:scale-105`}>
                   <feat.icon className="h-5 w-5 text-foreground/70" />
                 </div>
