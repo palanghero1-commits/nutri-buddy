@@ -1,6 +1,6 @@
 # Nutri-Track
 
-Nutri-Track is a responsive web application for monitoring children's nutrition and growth data for Barangay Tinampa-an, Cadiz City. It provides separate admin and user experiences, where users can submit child, meal, and growth records, and the admin side can immediately monitor the same shared data through dashboards, reports, and alerts.
+Nutri-Track is a responsive web application for monitoring children's nutrition and growth data for Barangay Tinampa-an Health Center, Cadiz City. It provides separate admin and user experiences, where users can submit child, meal, and growth records, and the admin side can immediately monitor the same shared data through dashboards, reports, and alerts.
 
 ## Project Summary
 

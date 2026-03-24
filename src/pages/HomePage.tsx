@@ -29,7 +29,7 @@ const features = [
   {
     icon: Heart,
     title: "Community Health",
-    description: "Supporting Barangay Tinampa-an's mission for healthier children and families.",
+    description: "Supporting Barangay Tinampa-an Health Center's mission for healthier children and families.",
     color: "bg-peach",
   },
 ];
@@ -75,7 +75,7 @@ export default function HomePage() {
         <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-2">
           <div className="section-enter">
             <span className="mb-6 inline-block rounded-full bg-sage px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-              Barangay Tinampa-an, Cadiz City
+              Barangay Tinampa-an Health Center, Cadiz City
             </span>
             <h1 className="text-3xl font-bold leading-[1.1] text-foreground sm:text-5xl">
               Nourishing Every Child&apos;s Future
@@ -218,7 +218,7 @@ export default function HomePage() {
           </div>
           <h2 className="text-3xl font-bold text-foreground">About Nutri-Track</h2>
           <p className="mt-4 leading-relaxed text-muted-foreground">
-            The Nutri-Track System is designed for Barangay Tinampa-an, Cadiz City - a digital solution for monitoring children&apos;s nutritional intake and overall health status. It supports parents, guardians, and health professionals in promoting healthy growth and development through data-driven insights, AI-powered recommendations, and comprehensive reporting tools.
+            The Nutri-Track System is designed for Barangay Tinampa-an Health Center, Cadiz City - a digital solution for monitoring children&apos;s nutritional intake and overall health status. It supports parents, guardians, and health professionals in promoting healthy growth and development through data-driven insights, AI-powered recommendations, and comprehensive reporting tools.
           </p>
           <p className="mt-4 leading-relaxed text-muted-foreground">
             Evaluated using the ISO/IEC 25010 (SQuaRE) model for functional suitability, performance efficiency, usability, reliability, security, maintainability, flexibility, and safety.
@@ -232,7 +232,7 @@ export default function HomePage() {
             <Leaf className="h-4 w-4 text-primary" />
             <span className="text-sm font-semibold text-foreground">Nutri-Track System</span>
           </div>
-          <p className="text-xs text-muted-foreground">© 2026 Barangay Tinampa-an, Cadiz City. All rights reserved.</p>
+          <p className="text-xs text-muted-foreground">© 2026 Barangay Tinampa-an Health Center, Cadiz City. All rights reserved.</p>
         </div>
       </footer>
     </div>

@@ -46,7 +46,7 @@ export default function AdminLogin() {
             Nutri-Track Admin Portal
           </h2>
           <p className="text-primary-foreground/70 mt-4 leading-relaxed">
-            Access the dashboard to monitor children's health, manage records, and generate reports for Barangay Tinampa-an.
+            Access the dashboard to monitor children's health, manage records, and generate reports for Barangay Tinampa-an Health Center, Cadiz City.
           </p>
           <div className="mt-10 space-y-4">
             {["Manage children's health records", "Track meals and growth data", "Generate health reports"].map((item) => (

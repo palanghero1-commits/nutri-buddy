@@ -4,7 +4,7 @@ This file is for studying the code and preparing for project defense.
 
 ## 1. One-Minute Project Explanation
 
-Nutri-Track is a responsive nutrition monitoring system for children in Barangay Tinampa-an, Cadiz City. It has two main roles: admin and user. Users can register and submit child profiles, meal logs, and growth updates. The admin side reads the same shared data and presents it through dashboards, alerts, charts, and reports. The purpose is to make nutrition monitoring more organized, visible, and easier to manage.
+Nutri-Track is a responsive nutrition monitoring system for children in Barangay Tinampa-an Health Center, Cadiz City. It has two main roles: admin and user. Users can register and submit child profiles, meal logs, and growth updates. The admin side reads the same shared data and presents it through dashboards, alerts, charts, and reports. The purpose is to make nutrition monitoring more organized, visible, and easier to manage.
 
 ## 2. Main Objective
 

@@ -17,7 +17,7 @@ export default function Dashboard() {
     <div>
       <div className="section-enter">
         <h1 className="text-2xl font-bold text-foreground leading-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Barangay Tinampa-an, Cadiz City — Children's Health Overview</p>
+        <p className="text-muted-foreground mt-1">Barangay Tinampa-an Health Center, Cadiz City - Children's Health Overview</p>
       </div>
 
       {/* Stat cards */}
