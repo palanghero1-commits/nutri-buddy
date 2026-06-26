@@ -18,8 +18,8 @@ export default function AdminLogin() {
     if (!email.trim() || !password.trim()) return;
 
     setIsLoading(true);
-    setTimeout(() => {
-      const success = login(email, password);
+    setTimeout(async () => {
+      const success = await login(email, password);
       if (success) {
         toast({ title: "Welcome back!", description: "Logged in successfully." });
         navigate("/admin");

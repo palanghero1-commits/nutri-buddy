@@ -1,6 +1,7 @@
 import { Search, Scale, Ruler, Activity } from "lucide-react";
 import { useState } from "react";
 import { useNutriData } from "@/hooks/useNutriData";
+import { formatChildAge } from "@/lib/mockData";
 
 export default function ChildrenList() {
   const { children } = useNutriData();
@@ -41,7 +42,9 @@ export default function ChildrenList() {
               </div>
               <div className="min-w-0">
                 <h3 className="font-semibold text-foreground">{child.name}</h3>
-                <p className="text-xs text-muted-foreground">{child.age} years old • {child.gender}</p>
+                <p className="text-xs text-muted-foreground">
+                  {child.ageDisplay || formatChildAge(child.birthDate) || `${child.age} years old`} - {child.gender}
+                </p>
               </div>
             </div>
 

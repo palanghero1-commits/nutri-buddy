@@ -45,8 +45,8 @@ export default function UserRegister() {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      const result = registerUser(name, email, password);
+    setTimeout(async () => {
+      const result = await registerUser(name, email, password);
 
       if (result.success) {
         toast({

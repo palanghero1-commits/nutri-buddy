@@ -1,6 +1,7 @@
 import { FileText, Download } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useNutriData } from "@/hooks/useNutriData";
+import { formatChildAge } from "@/lib/mockData";
 
 export default function ReportsPage() {
   const { children, dashboardStats } = useNutriData();
@@ -75,7 +76,7 @@ export default function ReportsPage() {
               {children.map((child) => (
                 <tr key={child.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                   <td className="py-3 px-2 font-medium">{child.name}</td>
-                  <td className="py-3 px-2">{child.age}</td>
+                  <td className="py-3 px-2">{child.ageDisplay || formatChildAge(child.birthDate) || `${child.age} years old`}</td>
                   <td className="py-3 px-2 tabular-nums">{child.weight} kg</td>
                   <td className="py-3 px-2 tabular-nums">{child.height} cm</td>
                   <td className="py-3 px-2 tabular-nums">{child.bmi}</td>

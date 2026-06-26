@@ -2,6 +2,7 @@ import { Users, Utensils, AlertTriangle, TrendingUp, Heart, Scale, Ruler, Activi
 import { Link } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useNutriData } from "@/hooks/useNutriData";
+import { formatChildAge } from "@/lib/mockData";
 
 export default function Dashboard() {
   const { dashboardStats, children, alerts } = useNutriData();
@@ -82,7 +83,9 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{child.name}</p>
-                  <p className="text-xs text-muted-foreground">{child.age} yrs • {child.weight} kg</p>
+                  <p className="text-xs text-muted-foreground">
+                    {child.ageDisplay || formatChildAge(child.birthDate) || `${child.age} years old`} - {child.weight} kg
+                  </p>
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   child.status === "Normal" ? "bg-sage text-sage-deep" :

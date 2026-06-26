@@ -24,8 +24,8 @@ export default function UserLogin() {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      const success = loginUser(email, password);
+    setTimeout(async () => {
+      const success = await loginUser(email, password);
 
       if (success) {
         toast({

@@ -1,5 +1,8 @@
 import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import { Leaf, UtensilsCrossed, TrendingUp, Bell, Shield, Heart, Users, ArrowRight, ChevronRight } from "lucide-react";
+import { apiRequest } from "@/lib/api";
+import type { Child, GrowthRecord, MealEntry } from "@/lib/mockData";
 
 const features = [
   {
@@ -34,14 +37,77 @@ const features = [
   },
 ];
 
-const stats = [
-  { value: "500+", label: "Children Monitored" },
-  { value: "1,200+", label: "Meals Tracked" },
-  { value: "98%", label: "Parent Satisfaction" },
-  { value: "24/7", label: "AI Support" },
-];
+type NutritionResponse = {
+  children: Child[];
+  mealEntries: MealEntry[];
+  growthData: Record<string, GrowthRecord[]>;
+};
+
+type LiveStatus = "loading" | "ready" | "error";
+
+function formatPercent(value: number) {
+  if (!Number.isFinite(value)) return "0%";
+  return `${Math.round(value)}%`;
+}
 
 export default function HomePage() {
+  const [liveData, setLiveData] = useState<NutritionResponse>({
+    children: [],
+    mealEntries: [],
+    growthData: {},
+  });
+  const [liveStatus, setLiveStatus] = useState<LiveStatus>("loading");
+
+  useEffect(() => {
+    let isActive = true;
+
+    apiRequest<NutritionResponse>("/api/nutrition")
+      .then((data) => {
+        if (!isActive) return;
+        setLiveData(data);
+        setLiveStatus("ready");
+      })
+      .catch((error) => {
+        console.error("Unable to load live homepage preview data.", error);
+        if (isActive) setLiveStatus("error");
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const livePreview = useMemo(() => {
+    const totalChildren = liveData.children.length;
+    const totalMeals = liveData.mealEntries.length;
+    const growthRecordCount = Object.values(liveData.growthData).reduce((total, records) => total + records.length, 0);
+    const normalChildren = liveData.children.filter((child) => child.status === "Normal").length;
+    const childrenWithAlerts = liveData.children.filter((child) => child.status !== "Normal").length;
+    const growthOnTrack = totalChildren === 0 ? 0 : (normalChildren / totalChildren) * 100;
+    const recentChildren = [...liveData.children]
+      .sort((a, b) => String(b.updatedAt ?? "").localeCompare(String(a.updatedAt ?? "")))
+      .slice(0, 3);
+
+    return {
+      totalChildren,
+      totalMeals,
+      growthRecordCount,
+      normalChildren,
+      childrenWithAlerts,
+      growthOnTrack,
+      recentChildren,
+      stats: [
+        { value: String(totalChildren), label: "Children Monitored" },
+        { value: String(totalMeals), label: "Meals Tracked" },
+        { value: String(growthRecordCount), label: "Growth Records" },
+        { value: String(childrenWithAlerts), label: "Active Alerts" },
+      ],
+    };
+  }, [liveData]);
+
+  const statusText =
+    liveStatus === "loading" ? "Loading live data" : liveStatus === "ready" ? "Live from MySQL database" : "API preview unavailable";
+
   return (
     <div className="min-h-screen bg-background">
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
@@ -113,8 +179,8 @@ export default function HomePage() {
                 <div className="rounded-2xl border border-border/60 bg-background/85 p-5 backdrop-blur">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Today&apos;s Snapshot</p>
-                      <h3 className="mt-2 text-2xl font-bold text-foreground">Healthy Habits</h3>
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">{statusText}</p>
+                      <h3 className="mt-2 text-2xl font-bold text-foreground">Database Snapshot</h3>
                     </div>
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
                       <Leaf className="h-6 w-6" />
@@ -123,18 +189,18 @@ export default function HomePage() {
                   <div className="mt-6 grid grid-cols-3 gap-3">
                     <div className="rounded-2xl bg-peach p-3 text-center">
                       <UtensilsCrossed className="mx-auto h-5 w-5 text-foreground/70" />
-                      <p className="mt-2 text-lg font-bold text-foreground">18</p>
+                      <p className="mt-2 text-lg font-bold text-foreground">{livePreview.totalMeals}</p>
                       <p className="text-xs text-muted-foreground">Meals logged</p>
                     </div>
                     <div className="rounded-2xl bg-sage p-3 text-center">
                       <TrendingUp className="mx-auto h-5 w-5 text-foreground/70" />
-                      <p className="mt-2 text-lg font-bold text-foreground">94%</p>
+                      <p className="mt-2 text-lg font-bold text-foreground">{formatPercent(livePreview.growthOnTrack)}</p>
                       <p className="text-xs text-muted-foreground">Growth on track</p>
                     </div>
                     <div className="rounded-2xl bg-sky p-3 text-center">
                       <Heart className="mx-auto h-5 w-5 text-foreground/70" />
-                      <p className="mt-2 text-lg font-bold text-foreground">12</p>
-                      <p className="text-xs text-muted-foreground">Care plans</p>
+                      <p className="mt-2 text-lg font-bold text-foreground">{livePreview.totalChildren}</p>
+                      <p className="text-xs text-muted-foreground">Child profiles</p>
                     </div>
                   </div>
                 </div>
@@ -145,28 +211,26 @@ export default function HomePage() {
                         <Heart className="h-5 w-5 text-foreground/80" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-foreground">Balanced nutrition</p>
-                        <p className="text-xs text-muted-foreground">Fresh produce, protein, and daily monitoring</p>
+                        <p className="text-sm font-semibold text-foreground">Latest database records</p>
+                        <p className="text-xs text-muted-foreground">
+                          {livePreview.growthRecordCount} growth updates and {livePreview.childrenWithAlerts} active alerts
+                        </p>
                       </div>
                     </div>
                   </div>
                   <div className="rounded-2xl border border-border/60 bg-foreground p-5 text-background">
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-background/70">Focus Areas</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-background/70">Recent Children</p>
                     <div className="mt-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">Meal consistency</span>
-                        <span className="text-sm font-semibold">Excellent</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-background/15">
-                        <div className="h-2 w-[82%] rounded-full bg-peach" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">Growth check-ins</span>
-                        <span className="text-sm font-semibold">Weekly</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-background/15">
-                        <div className="h-2 w-[68%] rounded-full bg-sage" />
-                      </div>
+                      {livePreview.recentChildren.length === 0 ? (
+                        <p className="text-sm text-background/75">No child records yet.</p>
+                      ) : (
+                        livePreview.recentChildren.map((child) => (
+                          <div key={child.id} className="flex items-center justify-between gap-3">
+                            <span className="truncate text-sm">{child.name}</span>
+                            <span className="shrink-0 text-sm font-semibold">{child.status}</span>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
@@ -179,7 +243,7 @@ export default function HomePage() {
 
       <section className="bg-primary py-10">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 sm:px-6 md:grid-cols-4 md:gap-8">
-          {stats.map((stat, i) => (
+          {livePreview.stats.map((stat, i) => (
             <div key={stat.label} className={`section-enter text-center stagger-${i + 1}`}>
               <p className="text-3xl font-bold text-primary-foreground">{stat.value}</p>
               <p className="mt-1 text-sm text-primary-foreground/70">{stat.label}</p>

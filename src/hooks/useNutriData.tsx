@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
+  formatChildAge,
+  getChildAgeParts,
   seedChildren,
   seedGrowthData,
   seedMealEntries,
@@ -9,10 +11,13 @@ import {
   type GrowthRecord,
   type MealEntry,
 } from "@/lib/mockData";
+import { apiRequest } from "@/lib/api";
 
 type AddChildInput = {
-  name: string;
-  age: number;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  birthDate: string;
   gender: Child["gender"];
   weight: number;
   height: number;
@@ -54,9 +59,15 @@ type NutriDataContextType = {
   growthData: Record<string, GrowthRecord[]>;
   alerts: Alert[];
   dashboardStats: DashboardStats;
-  addChild: (input: AddChildInput) => void;
-  addMealEntry: (input: AddMealInput) => void;
-  addGrowthRecord: (input: AddGrowthRecordInput) => void;
+  addChild: (input: AddChildInput) => Promise<void>;
+  addMealEntry: (input: AddMealInput) => Promise<void>;
+  addGrowthRecord: (input: AddGrowthRecordInput) => Promise<void>;
+};
+
+type NutritionResponse = {
+  children: Child[];
+  mealEntries: MealEntry[];
+  growthData: Record<string, GrowthRecord[]>;
 };
 
 const STORAGE_KEYS = {
@@ -102,6 +113,23 @@ function deriveStatus(age: number, height: number, bmi: number): ChildStatus {
   if (bmi < 14) return "Underweight";
   if (bmi > 18) return "Overweight";
   return "Normal";
+}
+
+function createFullName(firstName: string, middleName: string | undefined, lastName: string) {
+  return [firstName, middleName, lastName]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+function splitName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+
+  return {
+    firstName: parts[0] ?? "",
+    middleName: parts.length > 2 ? parts.slice(1, -1).join(" ") : undefined,
+    lastName: parts.length > 1 ? parts.at(-1)! : "",
+  };
 }
 
 function createAvatar(name: string) {
@@ -197,6 +225,51 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
+    let isActive = true;
+
+    apiRequest<NutritionResponse>("/api/nutrition")
+      .then((data) => {
+        if (!isActive) return;
+        setChildProfiles(data.children);
+        setMealEntries(data.mealEntries);
+        setGrowthData(data.growthData);
+      })
+      .catch((error) => {
+        console.error("Unable to load data from MySQL API. Using local cached data.", error);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+  const childrenWithCurrentAges = useMemo(
+    () =>
+      childProfiles.map((child) => {
+        const nameParts = splitName(child.name);
+
+        if (!child.birthDate) {
+          return {
+            ...child,
+            firstName: child.firstName || nameParts.firstName,
+            middleName: child.middleName || nameParts.middleName,
+            lastName: child.lastName || nameParts.lastName,
+            ageDisplay: child.ageDisplay || `${child.age} years old`,
+          };
+        }
+
+        return {
+          ...child,
+          firstName: child.firstName || nameParts.firstName,
+          middleName: child.middleName || nameParts.middleName,
+          lastName: child.lastName || nameParts.lastName,
+          age: getChildAgeParts(child.birthDate).years,
+          ageDisplay: formatChildAge(child.birthDate),
+        };
+      }),
+    [childProfiles],
+  );
+
+  useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.children, JSON.stringify(childProfiles));
   }, [childProfiles]);
 
@@ -208,32 +281,54 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEYS.growth, JSON.stringify(growthData));
   }, [growthData]);
 
-  const addChild = (input: AddChildInput) => {
+  const addChild = async (input: AddChildInput) => {
     const bmi = calculateBmi(input.weight, input.height);
     const today = new Date().toISOString().slice(0, 10);
+    const firstName = input.firstName.trim();
+    const middleName = input.middleName?.trim();
+    const lastName = input.lastName.trim();
+    const name = createFullName(firstName, middleName, lastName);
+    const age = getChildAgeParts(input.birthDate).years;
+    const ageDisplay = formatChildAge(input.birthDate);
     const nextChild: Child = {
       id: createId("child"),
-      name: input.name.trim(),
-      age: input.age,
+      firstName,
+      middleName,
+      lastName,
+      name,
+      birthDate: input.birthDate,
+      age,
+      ageDisplay,
       gender: input.gender,
       weight: toFixedNumber(input.weight),
       height: toFixedNumber(input.height),
       bmi,
-      status: deriveStatus(input.age, input.height, bmi),
-      avatar: createAvatar(input.name),
+      status: deriveStatus(age, input.height, bmi),
+      avatar: createAvatar(name),
       parentName: input.parentName.trim(),
       createdByEmail: input.createdByEmail,
       updatedAt: today,
     };
 
+    const initialGrowthRecord = { date: today, weight: nextChild.weight, height: nextChild.height };
+
     setChildProfiles((current) => [nextChild, ...current]);
     setGrowthData((current) => ({
       ...current,
-      [nextChild.id]: [{ date: today, weight: nextChild.weight, height: nextChild.height }],
+      [nextChild.id]: [initialGrowthRecord],
     }));
+
+    try {
+      await apiRequest<{ child: Child }>("/api/children", {
+        method: "POST",
+        body: JSON.stringify({ child: nextChild, growthRecord: initialGrowthRecord }),
+      });
+    } catch (error) {
+      console.error("Unable to save child to MySQL API.", error);
+    }
   };
 
-  const addMealEntry = (input: AddMealInput) => {
+  const addMealEntry = async (input: AddMealInput) => {
     const nextMeal: MealEntry = {
       id: createId("meal"),
       childId: input.childId,
@@ -247,17 +342,42 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
     };
 
     setMealEntries((current) => [nextMeal, ...current]);
+
+    try {
+      await apiRequest<{ meal: MealEntry }>("/api/meals", {
+        method: "POST",
+        body: JSON.stringify({ meal: nextMeal }),
+      });
+    } catch (error) {
+      console.error("Unable to save meal to MySQL API.", error);
+    }
   };
 
-  const addGrowthRecord = (input: AddGrowthRecordInput) => {
+  const addGrowthRecord = async (input: AddGrowthRecordInput) => {
+    const currentChild = childProfiles.find((child) => child.id === input.childId);
+    if (!currentChild) return;
+
+    const bmi = calculateBmi(input.weight, input.height);
+    const age = currentChild.birthDate ? getChildAgeParts(currentChild.birthDate).years : currentChild.age;
+    const ageDisplay = currentChild.birthDate ? formatChildAge(currentChild.birthDate) : currentChild.ageDisplay;
+    const updatedChild: Child = {
+      ...currentChild,
+      age,
+      ageDisplay,
+      weight: toFixedNumber(input.weight),
+      height: toFixedNumber(input.height),
+      bmi,
+      status: deriveStatus(age, input.height, bmi),
+      updatedAt: input.date,
+    };
+    const nextRecord: GrowthRecord = {
+      date: input.date,
+      weight: toFixedNumber(input.weight),
+      height: toFixedNumber(input.height),
+    };
+
     setGrowthData((current) => {
       const existing = current[input.childId] ?? [];
-      const nextRecord: GrowthRecord = {
-        date: input.date,
-        weight: toFixedNumber(input.weight),
-        height: toFixedNumber(input.height),
-      };
-
       const nextRecords = [...existing, nextRecord].sort((a, b) => a.date.localeCompare(b.date));
       return {
         ...current,
@@ -266,32 +386,29 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
     });
 
     setChildProfiles((current) =>
-      current.map((child) => {
-        if (child.id !== input.childId) return child;
-
-        const bmi = calculateBmi(input.weight, input.height);
-        return {
-          ...child,
-          weight: toFixedNumber(input.weight),
-          height: toFixedNumber(input.height),
-          bmi,
-          status: deriveStatus(child.age, input.height, bmi),
-          updatedAt: input.date,
-        };
-      }),
+      current.map((child) => (child.id === input.childId ? updatedChild : child)),
     );
+
+    try {
+      await apiRequest<{ record: GrowthRecord; child: Child }>("/api/growth-records", {
+        method: "POST",
+        body: JSON.stringify({ childId: input.childId, record: nextRecord, child: updatedChild }),
+      });
+    } catch (error) {
+      console.error("Unable to save growth record to MySQL API.", error);
+    }
   };
 
-  const alerts = useMemo(() => deriveAlerts(childProfiles), [childProfiles]);
+  const alerts = useMemo(() => deriveAlerts(childrenWithCurrentAges), [childrenWithCurrentAges]);
   const dashboardStats = useMemo(
-    () => deriveDashboardStats(childProfiles, mealEntries, alerts),
-    [alerts, childProfiles, mealEntries],
+    () => deriveDashboardStats(childrenWithCurrentAges, mealEntries, alerts),
+    [alerts, childrenWithCurrentAges, mealEntries],
   );
 
   return (
     <NutriDataContext.Provider
       value={{
-        children: childProfiles,
+        children: childrenWithCurrentAges,
         mealEntries,
         growthData,
         alerts,

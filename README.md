@@ -14,7 +14,7 @@ This project was built as a final-year web application using:
 - Recharts
 - Radix UI / shadcn-style UI components
 
-The current implementation is a frontend-only prototype. It uses browser storage instead of a live database, and session handling is simulated through `sessionStorage` and `localStorage`.
+The current implementation uses a Node API server connected to MySQL. The React app talks to the API for accounts, child profiles, meal entries, and growth records. `sessionStorage` is still used only for the currently signed-in browser session.
 
 ## Main Features
 
@@ -55,8 +55,7 @@ The system has two main data layers:
 
 ### Authentication Flow
 
-- Admin login uses hardcoded demo credentials.
-- User accounts are stored in `localStorage`.
+- Admin and user credentials are stored in MySQL.
 - Active login sessions are stored in `sessionStorage`.
 - Route guards redirect unauthorized users away from protected pages.
 
@@ -68,16 +67,18 @@ Relevant files:
 
 ### Data Flow
 
-- Seed data starts in `src/lib/mockData.ts`.
-- `NutriDataProvider` loads seed data into browser storage if no saved data exists.
-- User submissions update local React state.
-- Updated state is saved back into `localStorage`.
-- Admin pages read from the same shared state, so new user entries appear immediately.
+- `server.mjs` connects to MySQL and creates the `nutri_buddy` database if needed.
+- On first run, the server creates these tables: `users`, `children`, `meal_entries`, and `growth_records`.
+- Demo admin, demo user, child, meal, and growth seed records are inserted if the tables are empty.
+- `NutriDataProvider` loads data from `/api/nutrition`.
+- User submissions update local React state and are saved to MySQL through `/api` endpoints.
+- Admin pages read the same shared API data, so records are shared across devices when they use the same database.
 
 Relevant files:
 
 - `src/hooks/useNutriData.tsx`
 - `src/lib/mockData.ts`
+- `server.mjs`
 
 ## Routes
 
@@ -159,25 +160,73 @@ src/
 npm install
 ```
 
-### 2. Start development server
+### 2. Configure MySQL
+
+Create a `.env` file from `.env.example` and adjust the values for your local MySQL installation:
+
+```bash
+API_PORT=3001
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=
+MYSQL_DATABASE=nutri_buddy
+MYSQL_CONNECTION_LIMIT=10
+SEED_DEMO_NUTRITION_DATA=false
+```
+
+Make sure MySQL is running before starting the app. The server will create the database and tables automatically using `utf8mb4` and InnoDB foreign keys.
+
+If your MySQL user is not allowed to create databases, create the database first:
+
+```sql
+CREATE DATABASE nutri_buddy CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Then point `MYSQL_DATABASE` to that database name.
+
+### 3. Check MySQL connection and schema
+
+Run this before transferring or presenting the project:
+
+```bash
+npm run db:check
+```
+
+This command verifies the MySQL connection, creates missing tables, confirms required tables exist, performs a small write/read/delete test, and checks foreign-key cascade deletes.
+
+### 4. Start development server
 
 ```bash
 npm run dev
 ```
 
-### 3. Build for production
+This runs both:
+
+- API server: `http://localhost:3001`
+- Vite app: `http://localhost:8080`
+
+### 5. Reset demo data
+
+To keep the demo admin/user accounts but remove child, meal, and growth records:
+
+```bash
+npm run db:reset-demo
+```
+
+### 6. Build for production
 
 ```bash
 npm run build
 ```
 
-### 4. Preview production build
+### 7. Preview production build
 
 ```bash
 npm run preview
 ```
 
-### 5. Run built app with Node server
+### 8. Run built app with Node server
 
 ```bash
 npm run build
@@ -185,6 +234,18 @@ npm run start
 ```
 
 The custom production server is implemented in `server.mjs`.
+
+## Transfer to Another Computer or Hosting
+
+1. Copy the project files.
+2. Run `npm install`.
+3. Install/start MySQL 8.x or a compatible MySQL service.
+4. Copy `.env.example` to `.env` and update `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, and `MYSQL_DATABASE`.
+5. Run `npm run db:check`.
+6. Run `npm run build`.
+7. Run `npm run start`.
+
+The app can create its own database and tables when the MySQL account has `CREATE` privileges. If your host only gives access to an existing database, import `database.schema.sql` or run `npm run db:check` after setting `MYSQL_DATABASE` to the provided database name.
 
 ## Testing
 
@@ -233,17 +294,13 @@ This is one of the strongest points to explain during project defense.
 
 ## Current Limitations
 
-- No real backend or cloud database
-- No encrypted password storage
-- No real API integration
-- No multi-device sync
-- Demo auth only
+- Passwords are hashed, but this is still a simple educational auth flow rather than a production session/token system
+- No cloud deployment database configuration yet
 - Reports are view-only and not exported as real files
 
 ## Recommended Future Improvements
 
-- Replace browser storage with a real database such as Supabase or Firebase
-- Add secure authentication with hashed passwords
+- Add secure token/cookie sessions
 - Add role-based access control from a backend
 - Generate downloadable PDF or CSV reports
 - Add audit logs and activity history

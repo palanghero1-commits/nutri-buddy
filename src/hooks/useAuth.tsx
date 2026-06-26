@@ -1,10 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from "react";
-
-interface UserAccount {
-  name: string;
-  email: string;
-  password: string;
-}
+import { apiRequest } from "@/lib/api";
 
 interface UserSession {
   name: string;
@@ -14,119 +9,108 @@ interface UserSession {
 interface AuthContextType {
   isAdmin: boolean;
   currentUser: UserSession | null;
-  login: (email: string, password: string) => boolean;
-  loginUser: (email: string, password: string) => boolean;
-  registerUser: (name: string, email: string, password: string) => { success: boolean; message: string };
+  login: (email: string, password: string) => Promise<boolean>;
+  loginUser: (email: string, password: string) => Promise<boolean>;
+  registerUser: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
 }
 
 const ADMIN_SESSION_KEY = "nutri-admin";
 const USER_SESSION_KEY = "nutri-user";
-const USERS_STORAGE_KEY = "nutri-users";
-
-const defaultUsers: UserAccount[] = [
-  {
-    name: "Maria Santos",
-    email: "user@nutritrack.app",
-    password: "user12345",
-  },
-];
-
-function loadUsers() {
-  const stored = localStorage.getItem(USERS_STORAGE_KEY);
-  if (!stored) {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(defaultUsers));
-    return defaultUsers;
-  }
-
-  try {
-    const parsed = JSON.parse(stored) as UserAccount[];
-    return parsed.length > 0 ? parsed : defaultUsers;
-  } catch {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(defaultUsers));
-    return defaultUsers;
-  }
-}
-
-function saveUsers(users: UserAccount[]) {
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-}
 
 const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
   currentUser: null,
-  login: () => false,
-  loginUser: () => false,
-  registerUser: () => ({ success: false, message: "" }),
+  login: async () => false,
+  loginUser: async () => false,
+  registerUser: async () => ({ success: false, message: "" }),
   logout: () => {},
 });
 
+type AuthResponse = {
+  success: boolean;
+  message?: string;
+  user?: UserSession;
+};
+
+function readUserSession() {
+  const stored = sessionStorage.getItem(USER_SESSION_KEY);
+  if (!stored) return null;
+
+  try {
+    return JSON.parse(stored) as UserSession;
+  } catch {
+    sessionStorage.removeItem(USER_SESSION_KEY);
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(() => sessionStorage.getItem(ADMIN_SESSION_KEY) === "true");
-  const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
-    const stored = sessionStorage.getItem(USER_SESSION_KEY);
-    return stored ? (JSON.parse(stored) as UserSession) : null;
-  });
+  const [currentUser, setCurrentUser] = useState<UserSession | null>(() => readUserSession());
 
-  const login = (email: string, password: string) => {
-    // Demo credentials - replace with real auth later
-    if (email === "admin@nutritrack.gov.ph" && password === "admin123") {
+  const login = async (email: string, password: string) => {
+    try {
+      await apiRequest<AuthResponse>("/api/auth/admin-login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+
       setIsAdmin(true);
       sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
       setCurrentUser(null);
       sessionStorage.removeItem(USER_SESSION_KEY);
       return true;
-    }
-    return false;
-  };
-
-  const loginUser = (email: string, password: string) => {
-    const users = loadUsers();
-    const match = users.find(
-      (user) => user.email.toLowerCase() === email.trim().toLowerCase() && user.password === password
-    );
-
-    if (!match) {
+    } catch {
       return false;
     }
-
-    const sessionUser = { name: match.name, email: match.email };
-    setCurrentUser(sessionUser);
-    sessionStorage.setItem(USER_SESSION_KEY, JSON.stringify(sessionUser));
-    setIsAdmin(false);
-    sessionStorage.removeItem(ADMIN_SESSION_KEY);
-    return true;
   };
 
-  const registerUser = (name: string, email: string, password: string) => {
-    const users = loadUsers();
-    const normalizedEmail = email.trim().toLowerCase();
+  const loginUser = async (email: string, password: string) => {
+    try {
+      const result = await apiRequest<AuthResponse>("/api/auth/user-login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (users.some((user) => user.email.toLowerCase() === normalizedEmail)) {
+      if (!result.user) return false;
+
+      setCurrentUser(result.user);
+      sessionStorage.setItem(USER_SESSION_KEY, JSON.stringify(result.user));
+      setIsAdmin(false);
+      sessionStorage.removeItem(ADMIN_SESSION_KEY);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const registerUser = async (name: string, email: string, password: string) => {
+    try {
+      const result = await apiRequest<AuthResponse>("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      if (!result.user) {
+        return { success: false, message: result.message || "Registration failed." };
+      }
+
+      setCurrentUser(result.user);
+      sessionStorage.setItem(USER_SESSION_KEY, JSON.stringify(result.user));
+      setIsAdmin(false);
+      sessionStorage.removeItem(ADMIN_SESSION_KEY);
+
+      return {
+        success: true,
+        message: "Account created successfully.",
+      };
+    } catch (error) {
       return {
         success: false,
-        message: "An account with this email already exists.",
+        message: error instanceof Error ? error.message : "Registration failed.",
       };
     }
-
-    const nextUser = {
-      name: name.trim(),
-      email: normalizedEmail,
-      password,
-    };
-
-    saveUsers([...users, nextUser]);
-
-    const sessionUser = { name: nextUser.name, email: nextUser.email };
-    setCurrentUser(sessionUser);
-    sessionStorage.setItem(USER_SESSION_KEY, JSON.stringify(sessionUser));
-    setIsAdmin(false);
-    sessionStorage.removeItem(ADMIN_SESSION_KEY);
-
-    return {
-      success: true,
-      message: "Account created successfully.",
-    };
   };
 
   const logout = () => {

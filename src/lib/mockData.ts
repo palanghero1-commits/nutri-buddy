@@ -2,8 +2,13 @@ export type ChildStatus = "Normal" | "Underweight" | "Overweight" | "Stunted";
 
 export interface Child {
   id: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
   name: string;
+  birthDate: string;
   age: number;
+  ageDisplay: string;
   gender: "Male" | "Female";
   weight: number;
   height: number;
@@ -13,6 +18,42 @@ export interface Child {
   parentName: string;
   createdByEmail?: string;
   updatedAt?: string;
+}
+
+export function getChildAgeParts(birthDate: string, today = new Date()) {
+  const parsedBirthDate = new Date(`${birthDate}T00:00:00`);
+
+  if (Number.isNaN(parsedBirthDate.getTime()) || parsedBirthDate > today) {
+    return { years: 0, months: 0, isValid: false };
+  }
+
+  let totalMonths =
+    (today.getFullYear() - parsedBirthDate.getFullYear()) * 12 +
+    today.getMonth() -
+    parsedBirthDate.getMonth();
+
+  if (today.getDate() < parsedBirthDate.getDate()) {
+    totalMonths -= 1;
+  }
+
+  totalMonths = Math.max(totalMonths, 0);
+
+  return {
+    years: Math.floor(totalMonths / 12),
+    months: totalMonths % 12,
+    isValid: true,
+  };
+}
+
+export function formatChildAge(birthDate: string, today = new Date()) {
+  const { years, months, isValid } = getChildAgeParts(birthDate, today);
+
+  if (!isValid) return "";
+  if (years === 0 && months === 0) return "Less than 1 month old";
+  if (years === 0) return `${months} ${months === 1 ? "month" : "months"} old`;
+  if (months === 0) return `${years} ${years === 1 ? "year" : "years"} old`;
+
+  return `${years} ${years === 1 ? "year" : "years"} & ${months} ${months === 1 ? "month" : "months"}`;
 }
 
 export interface MealEntry {
@@ -46,8 +87,12 @@ export interface Alert {
 export const seedChildren: Child[] = [
   {
     id: "1",
+    firstName: "Maria",
+    lastName: "Santos",
     name: "Maria Santos",
+    birthDate: "2020-07-01",
     age: 5,
+    ageDisplay: "5 years & 11 months",
     gender: "Female",
     weight: 17.2,
     height: 108,
@@ -59,8 +104,13 @@ export const seedChildren: Child[] = [
   },
   {
     id: "2",
+    firstName: "Juan",
+    middleName: "dela",
+    lastName: "Cruz",
     name: "Juan dela Cruz",
+    birthDate: "2022-07-01",
     age: 3,
+    ageDisplay: "3 years & 11 months",
     gender: "Male",
     weight: 11.8,
     height: 92,
@@ -72,8 +122,12 @@ export const seedChildren: Child[] = [
   },
   {
     id: "3",
+    firstName: "Sofia",
+    lastName: "Reyes",
     name: "Sofia Reyes",
+    birthDate: "2018-07-01",
     age: 7,
+    ageDisplay: "7 years & 11 months",
     gender: "Female",
     weight: 28.5,
     height: 125,
@@ -85,8 +139,12 @@ export const seedChildren: Child[] = [
   },
   {
     id: "4",
+    firstName: "Miguel",
+    lastName: "Garcia",
     name: "Miguel Garcia",
+    birthDate: "2021-07-01",
     age: 4,
+    ageDisplay: "4 years & 11 months",
     gender: "Male",
     weight: 14.1,
     height: 96,
@@ -98,8 +156,12 @@ export const seedChildren: Child[] = [
   },
   {
     id: "5",
+    firstName: "Isabella",
+    lastName: "Cruz",
     name: "Isabella Cruz",
+    birthDate: "2019-07-01",
     age: 6,
+    ageDisplay: "6 years & 11 months",
     gender: "Female",
     weight: 16.5,
     height: 105,
@@ -111,8 +173,12 @@ export const seedChildren: Child[] = [
   },
   {
     id: "6",
+    firstName: "Carlos",
+    lastName: "Mendoza",
     name: "Carlos Mendoza",
+    birthDate: "2023-07-01",
     age: 2,
+    ageDisplay: "2 years & 11 months",
     gender: "Male",
     weight: 10.2,
     height: 82,

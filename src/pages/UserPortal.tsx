@@ -1,40 +1,39 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { Bell, CalendarDays, Heart, Leaf, LogOut, Salad, ShieldCheck, UserRound } from "lucide-react";
+import {
+  Bell,
+  Plus,
+  Salad,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  UsersRound,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useNutriData } from "@/hooks/useNutriData";
-
-const highlights = [
-  {
-    icon: Salad,
-    title: "Meal reminders",
-    description: "Log breakfast, lunch, dinner, and snacks so the admin side sees the same entries.",
-    tone: "bg-peach",
-  },
-  {
-    icon: CalendarDays,
-    title: "Growth updates",
-    description: "Submit the latest weight and height to keep charts and reports current.",
-    tone: "bg-sage",
-  },
-  {
-    icon: Bell,
-    title: "Shared alerts",
-    description: "Status changes on your child records automatically affect admin alerts and summaries.",
-    tone: "bg-sky",
-  },
-];
+import { formatChildAge } from "@/lib/mockData";
 
 const today = new Date().toISOString().slice(0, 10);
 const currentMonth = new Date().toISOString().slice(0, 7);
 
 export default function UserPortal() {
-  const { currentUser, logout } = useAuth();
-  const { children, mealEntries, addChild, addMealEntry, addGrowthRecord } = useNutriData();
+  const { currentUser } = useAuth();
+  const { children, addChild, addMealEntry, addGrowthRecord } = useNutriData();
+  const [activeDialog, setActiveDialog] = useState<"child" | "meal" | "growth" | null>(null);
 
   const [childForm, setChildForm] = useState({
-    name: "",
-    age: "",
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    birthDate: "",
     gender: "Female",
     weight: "",
     height: "",
@@ -61,11 +60,7 @@ export default function UserPortal() {
     () => children.filter((child) => child.createdByEmail === currentUser?.email),
     [children, currentUser?.email],
   );
-  const myChildIds = useMemo(() => new Set(myChildren.map((child) => child.id)), [myChildren]);
-  const myMeals = useMemo(
-    () => mealEntries.filter((meal) => myChildIds.has(meal.childId)).slice(0, 5),
-    [mealEntries, myChildIds],
-  );
+  const calculatedChildAge = formatChildAge(childForm.birthDate);
 
   useEffect(() => {
     if (!mealForm.childId && myChildren.length > 0) {
@@ -84,8 +79,10 @@ export default function UserPortal() {
     if (!currentUser) return;
 
     addChild({
-      name: childForm.name,
-      age: Number(childForm.age),
+      firstName: childForm.firstName,
+      middleName: childForm.middleName,
+      lastName: childForm.lastName,
+      birthDate: childForm.birthDate,
       gender: childForm.gender as "Male" | "Female",
       weight: Number(childForm.weight),
       height: Number(childForm.height),
@@ -94,13 +91,16 @@ export default function UserPortal() {
     });
 
     setChildForm({
-      name: "",
-      age: "",
+      firstName: "",
+      middleName: "",
+      lastName: "",
+      birthDate: "",
       gender: "Female",
       weight: "",
       height: "",
     });
     setMessage("Child profile saved. The admin dashboard now uses this record.");
+    setActiveDialog(null);
   };
 
   const handleAddMeal = (event: React.FormEvent<HTMLFormElement>) => {
@@ -128,6 +128,7 @@ export default function UserPortal() {
       fat: "",
     }));
     setMessage("Meal entry saved. It is now visible in the admin meal tracker.");
+    setActiveDialog(null);
   };
 
   const handleAddGrowthRecord = (event: React.FormEvent<HTMLFormElement>) => {
@@ -147,133 +148,188 @@ export default function UserPortal() {
       height: "",
     }));
     setMessage("Growth update saved. Charts, reports, and alerts now reflect the latest values.");
+    setActiveDialog(null);
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <Leaf className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="font-bold tracking-tight text-foreground">Nutri-Track</p>
-              <p className="text-xs text-muted-foreground">User Portal</p>
-            </div>
-          </Link>
-
-          <button
-            onClick={logout}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted sm:w-auto"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </button>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-        <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-3xl border border-border/60 bg-gradient-to-br from-peach/45 via-background to-sage/30 p-6 shadow-sm sm:p-8">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Shared Data Entry</p>
-            <h1 className="mt-3 text-3xl font-bold leading-tight text-foreground sm:text-4xl">
-              Welcome, {currentUser?.name.split(" ")[0]}
-            </h1>
-            <p className="mt-4 max-w-2xl text-muted-foreground">
-              Anything you submit here appears on the admin dashboard, children list, meal tracker, growth monitor, reports, and alerts.
-            </p>
-
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl bg-background/90 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">My Children</p>
-                <p className="mt-2 text-xl font-bold text-foreground">{myChildren.length}</p>
-              </div>
-              <div className="rounded-2xl bg-background/90 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Meal Logs</p>
-                <p className="mt-2 text-xl font-bold text-foreground">{myMeals.length}</p>
-              </div>
-              <div className="rounded-2xl bg-background/90 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Sync Status</p>
-                <p className="mt-2 text-xl font-bold text-foreground">Live</p>
+      <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:py-9">
+        <section className="grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
+          <div className="section-enter overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm">
+            <div className="p-5 sm:p-7">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-secondary-foreground">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  User dashboard
+                </div>
+                <h1 className="mt-4 max-w-2xl text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+                  Welcome back, {currentUser?.name.split(" ")[0]}
+                </h1>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+                  Add new records from quick actions, then review saved child, meal, and growth data from the sidebar menus.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <Button onClick={() => setActiveDialog("child")}>
+                    <Plus className="h-4 w-4" />
+                    Add Child
+                  </Button>
+                  <Button variant="secondary" onClick={() => setActiveDialog("meal")} disabled={myChildren.length === 0}>
+                    <Salad className="h-4 w-4" />
+                    Log Meal
+                  </Button>
+                  <Button variant="outline" onClick={() => setActiveDialog("growth")} disabled={myChildren.length === 0}>
+                    <TrendingUp className="h-4 w-4" />
+                    Update Growth
+                  </Button>
+                </div>
               </div>
             </div>
 
             {message && (
-              <div className="mt-6 rounded-2xl border border-primary/20 bg-background/85 px-4 py-3 text-sm text-foreground">
+              <div className="border-t border-border/70 bg-background/80 px-5 py-3 text-sm text-foreground sm:px-7">
                 {message}
               </div>
             )}
           </div>
 
-          <div className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <UserRound className="h-6 w-6" />
+          <div className="section-enter stagger-1 grid gap-3 rounded-xl border border-border/70 bg-card p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sage text-sage-deep">
+                <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="font-semibold text-foreground">{currentUser?.name}</h2>
-                <p className="text-sm text-muted-foreground">{currentUser?.email}</p>
+                <h2 className="font-semibold text-foreground">Account Sync</h2>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Profiles created here stay linked to your signed-in user account.
+                </p>
               </div>
             </div>
-
-            <div className="mt-6 space-y-4">
-              <div className="rounded-2xl bg-muted/70 p-4">
-                <div className="flex items-center gap-2 text-foreground">
-                  <ShieldCheck className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">Account ownership</span>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">Child profiles you create are linked to this signed-in user account.</p>
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-peach text-warning-foreground">
+                <Bell className="h-5 w-5" />
               </div>
-              <div className="rounded-2xl bg-muted/70 p-4">
-                <div className="flex items-center gap-2 text-foreground">
-                  <Heart className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">Admin visibility</span>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">Admin pages use the same stored data, so updates are visible immediately on this device.</p>
+              <div>
+                <h2 className="font-semibold text-foreground">Admin Visibility</h2>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  New records update dashboard counts, alerts, reports, and trackers.
+                </p>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="mt-8 grid gap-5 md:grid-cols-3">
-          {highlights.map((item) => (
-            <div key={item.title} className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
-              <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${item.tone}`}>
-                <item.icon className="h-5 w-5 text-foreground/80" />
+        <section className="mt-5 grid items-start gap-5 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="section-enter stagger-2 rounded-xl border border-border/70 bg-card p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Workspace</h2>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Use the sidebar to open each record area without crowding this dashboard.
+                </p>
               </div>
-              <h3 className="mt-4 text-lg font-semibold text-foreground">{item.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.description}</p>
+              <UsersRound className="h-5 w-5 text-muted-foreground" />
             </div>
-          ))}
-        </section>
 
-        <section className="mt-8 grid gap-6 xl:grid-cols-[1fr_1fr_0.9fr]">
-          <form onSubmit={handleAddChild} className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-foreground">Add Child Profile</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Create a child record that will appear in the admin children list and reports.</p>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div className="mt-5 grid gap-3">
+              <div className="rounded-lg bg-muted/60 p-4">
+                <p className="text-sm font-semibold text-foreground">Child Profiles</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Each child appears under the Child Profiles section in the sidebar.
+                </p>
+              </div>
+              <div className="rounded-lg bg-muted/60 p-4">
+                <p className="text-sm font-semibold text-foreground">Meals</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Meal history is kept in its own menu so food logs stay organized.
+                </p>
+              </div>
+              <div className="rounded-lg bg-muted/60 p-4">
+                <p className="text-sm font-semibold text-foreground">Growth</p>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Height and weight updates are grouped in the Growth page.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="section-enter stagger-3 h-fit rounded-xl border border-border/70 bg-card p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Record Flow</h2>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Start with a child profile, then continue with meal and growth updates.
+                </p>
+              </div>
+              <TrendingUp className="h-5 w-5 text-muted-foreground" />
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg bg-sage p-4">
+                <p className="text-xs font-semibold text-sage-deep">Step 1</p>
+                <p className="mt-2 font-semibold text-foreground">Add child</p>
+              </div>
+              <div className="rounded-lg bg-peach p-4">
+                <p className="text-xs font-semibold text-warning-foreground">Step 2</p>
+                <p className="mt-2 font-semibold text-foreground">Log meals</p>
+              </div>
+              <div className="rounded-lg bg-sky p-4">
+                <p className="text-xs font-semibold text-foreground/70">Step 3</p>
+                <p className="mt-2 font-semibold text-foreground">Update growth</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <Dialog open={activeDialog === "child"} onOpenChange={(open) => setActiveDialog(open ? "child" : null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add Child Profile</DialogTitle>
+            <DialogDescription>Create a child record that appears in admin children lists and reports.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddChild} className="grid gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <label className="text-sm text-foreground">
-                Child Name
+                First Name
                 <input
                   required
-                  value={childForm.name}
-                  onChange={(event) => setChildForm((current) => ({ ...current, name: event.target.value }))}
+                  value={childForm.firstName}
+                  onChange={(event) => setChildForm((current) => ({ ...current, firstName: event.target.value }))}
                   className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
                 />
               </label>
               <label className="text-sm text-foreground">
-                Age
+                Middle Name
                 <input
-                  required
-                  min="1"
-                  max="18"
-                  type="number"
-                  value={childForm.age}
-                  onChange={(event) => setChildForm((current) => ({ ...current, age: event.target.value }))}
+                  value={childForm.middleName}
+                  onChange={(event) => setChildForm((current) => ({ ...current, middleName: event.target.value }))}
                   className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
                 />
               </label>
+              <label className="text-sm text-foreground">
+                Last Name
+                <input
+                  required
+                  value={childForm.lastName}
+                  onChange={(event) => setChildForm((current) => ({ ...current, lastName: event.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                />
+              </label>
+              <label className="text-sm text-foreground">
+                Birthdate
+                <input
+                  required
+                  type="date"
+                  max={today}
+                  value={childForm.birthDate}
+                  onChange={(event) => setChildForm((current) => ({ ...current, birthDate: event.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                />
+              </label>
+              <div className="rounded-lg border border-input bg-muted/60 px-3 py-2.5 text-sm text-foreground">
+                <p className="text-xs text-muted-foreground">Calculated Age</p>
+                <p className="mt-1 font-semibold">{calculatedChildAge || "Select birthdate"}</p>
+              </div>
               <label className="text-sm text-foreground">
                 Gender
                 <select
@@ -310,15 +366,24 @@ export default function UserPortal() {
                 />
               </label>
             </div>
-            <button className="mt-5 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90">
-              Save Child Profile
-            </button>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setActiveDialog(null)}>
+                Cancel
+              </Button>
+              <Button type="submit">Save Child Profile</Button>
+            </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
 
-          <form onSubmit={handleAddMeal} className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-foreground">Log Meal</h2>
-            <p className="mt-2 text-sm text-muted-foreground">Add a meal entry that syncs directly into the admin meal tracker.</p>
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+      <Dialog open={activeDialog === "meal"} onOpenChange={(open) => setActiveDialog(open ? "meal" : null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Log Meal</DialogTitle>
+            <DialogDescription>Add a meal entry that syncs into the admin meal tracker.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddMeal} className="grid gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <label className="text-sm text-foreground sm:col-span-2">
                 Child
                 <select
@@ -412,124 +477,87 @@ export default function UserPortal() {
                 />
               </label>
             </div>
-            <button
-              disabled={myChildren.length === 0}
-              className="mt-5 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
-            >
-              Save Meal Entry
-            </button>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setActiveDialog(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={myChildren.length === 0}>
+                Save Meal Entry
+              </Button>
+            </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
 
-          <div className="space-y-6">
-            <form onSubmit={handleAddGrowthRecord} className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
-              <h2 className="text-xl font-semibold text-foreground">Update Growth</h2>
-              <p className="mt-2 text-sm text-muted-foreground">Submit a new height and weight record for admin charts and alerts.</p>
-              <div className="mt-5 grid gap-4">
-                <label className="text-sm text-foreground">
-                  Child
-                  <select
-                    required
-                    disabled={myChildren.length === 0}
-                    value={growthForm.childId}
-                    onChange={(event) => setGrowthForm((current) => ({ ...current, childId: event.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5 disabled:opacity-60"
-                  >
-                    <option value="">Select child</option>
-                    {myChildren.map((child) => (
-                      <option key={child.id} value={child.id}>{child.name}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="text-sm text-foreground">
-                  Period
-                  <input
-                    required
-                    type="month"
-                    value={growthForm.date}
-                    onChange={(event) => setGrowthForm((current) => ({ ...current, date: event.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
-                  />
-                </label>
-                <label className="text-sm text-foreground">
-                  Weight (kg)
-                  <input
-                    required
-                    min="1"
-                    step="0.1"
-                    type="number"
-                    value={growthForm.weight}
-                    onChange={(event) => setGrowthForm((current) => ({ ...current, weight: event.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
-                  />
-                </label>
-                <label className="text-sm text-foreground">
-                  Height (cm)
-                  <input
-                    required
-                    min="30"
-                    step="0.1"
-                    type="number"
-                    value={growthForm.height}
-                    onChange={(event) => setGrowthForm((current) => ({ ...current, height: event.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
-                  />
-                </label>
-              </div>
-              <button
+      <Dialog open={activeDialog === "growth"} onOpenChange={(open) => setActiveDialog(open ? "growth" : null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Update Growth</DialogTitle>
+            <DialogDescription>Submit a new height and weight record for admin charts and alerts.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddGrowthRecord} className="grid gap-4">
+            <label className="text-sm text-foreground">
+              Child
+              <select
+                required
                 disabled={myChildren.length === 0}
-                className="mt-5 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+                value={growthForm.childId}
+                onChange={(event) => setGrowthForm((current) => ({ ...current, childId: event.target.value }))}
+                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5 disabled:opacity-60"
               >
-                Save Growth Record
-              </button>
-            </form>
-
-            <div className="rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
-              <h2 className="text-xl font-semibold text-foreground">My Submitted Records</h2>
-              {myChildren.length === 0 ? (
-                <p className="mt-3 text-sm text-muted-foreground">No child records yet. Add a child profile first to unlock meal and growth submissions.</p>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {myChildren.map((child) => (
-                    <div key={child.id} className="rounded-2xl bg-muted/60 p-4">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="font-semibold text-foreground">{child.name}</p>
-                          <p className="text-xs text-muted-foreground">{child.age} yrs, {child.gender}</p>
-                        </div>
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                          child.status === "Normal" ? "bg-sage text-sage-deep" :
-                          child.status === "Underweight" ? "bg-peach text-warning-foreground" :
-                          child.status === "Overweight" ? "bg-coral-light text-coral" :
-                          "bg-destructive/10 text-destructive"
-                        }`}>
-                          {child.status}
-                        </span>
-                      </div>
-                      <p className="mt-3 text-sm text-muted-foreground">
-                        {child.weight} kg • {child.height} cm • BMI {child.bmi}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {myMeals.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">Recent Meals</h3>
-                  <div className="mt-3 space-y-2">
-                    {myMeals.map((meal) => (
-                      <div key={meal.id} className="rounded-2xl bg-background p-3">
-                        <p className="text-sm font-medium text-foreground">{meal.mealType} • {meal.date}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{meal.foods.join(", ")}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                <option value="">Select child</option>
+                {myChildren.map((child) => (
+                  <option key={child.id} value={child.id}>{child.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="text-sm text-foreground">
+              Period
+              <input
+                required
+                type="month"
+                value={growthForm.date}
+                onChange={(event) => setGrowthForm((current) => ({ ...current, date: event.target.value }))}
+                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+              />
+            </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="text-sm text-foreground">
+                Weight (kg)
+                <input
+                  required
+                  min="1"
+                  step="0.1"
+                  type="number"
+                  value={growthForm.weight}
+                  onChange={(event) => setGrowthForm((current) => ({ ...current, weight: event.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                />
+              </label>
+              <label className="text-sm text-foreground">
+                Height (cm)
+                <input
+                  required
+                  min="30"
+                  step="0.1"
+                  type="number"
+                  value={growthForm.height}
+                  onChange={(event) => setGrowthForm((current) => ({ ...current, height: event.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                />
+              </label>
             </div>
-          </div>
-        </section>
-      </main>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setActiveDialog(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={myChildren.length === 0}>
+                Save Growth Record
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
