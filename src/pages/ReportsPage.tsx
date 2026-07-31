@@ -60,7 +60,7 @@ export default function ReportsPage() {
       <div className="stat-card mt-6 section-enter stagger-3">
         <h2 className="font-semibold mb-4">Children Summary Table</h2>
         <div className="overflow-x-auto">
-          <table className="min-w-[720px] w-full text-sm">
+          <table className="min-w-[920px] w-full text-sm">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">Name</th>
@@ -70,6 +70,8 @@ export default function ReportsPage() {
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">BMI</th>
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">Status</th>
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">Parent</th>
+                <th className="text-left py-3 px-2 font-medium text-muted-foreground">Mother</th>
+                <th className="text-left py-3 px-2 font-medium text-muted-foreground">Allergies</th>
               </tr>
             </thead>
             <tbody>
@@ -91,6 +93,8 @@ export default function ReportsPage() {
                     </span>
                   </td>
                   <td className="py-3 px-2 text-muted-foreground">{child.parentName}</td>
+                  <td className="py-3 px-2 text-muted-foreground">{child.motherName || child.parentName}</td>
+                  <td className="py-3 px-2 text-muted-foreground">{child.allergies?.trim() || "None recorded"}</td>
                 </tr>
               ))}
             </tbody>

@@ -25,12 +25,12 @@ const contentTypes = {
 };
 
 const seedChildren = [
-  ["1", "Maria", null, "Santos", "Maria Santos", "2020-07-01", 5, "5 years & 11 months", "Female", 17.2, 108, 14.7, "Normal", "MS", "Ana Santos", null, "2026-03-20"],
-  ["2", "Juan", "dela", "Cruz", "Juan dela Cruz", "2022-07-01", 3, "3 years & 11 months", "Male", 11.8, 92, 13.9, "Underweight", "JC", "Rosa dela Cruz", null, "2026-03-20"],
-  ["3", "Sofia", null, "Reyes", "Sofia Reyes", "2018-07-01", 7, "7 years & 11 months", "Female", 28.5, 125, 18.2, "Overweight", "SR", "Elena Reyes", null, "2026-03-19"],
-  ["4", "Miguel", null, "Garcia", "Miguel Garcia", "2021-07-01", 4, "4 years & 11 months", "Male", 14.1, 96, 15.3, "Normal", "MG", "Pedro Garcia", null, "2026-03-18"],
-  ["5", "Isabella", null, "Cruz", "Isabella Cruz", "2019-07-01", 6, "6 years & 11 months", "Female", 16.5, 105, 15, "Stunted", "IC", "Lorna Cruz", null, "2026-03-18"],
-  ["6", "Carlos", null, "Mendoza", "Carlos Mendoza", "2023-07-01", 2, "2 years & 11 months", "Male", 10.2, 82, 15.2, "Normal", "CM", "Margie Mendoza", null, "2026-03-17"],
+  ["1", "Maria", null, "Santos", "Maria Santos", "2020-07-01", 5, "5 years & 11 months", "Female", 17.2, 108, 14.7, "Normal", "MS", "Ana Santos", "Ana Santos", "", null, "2026-03-20"],
+  ["2", "Juan", "dela", "Cruz", "Juan dela Cruz", "2022-07-01", 3, "3 years & 11 months", "Male", 11.8, 92, 13.9, "Underweight", "JC", "Rosa dela Cruz", "Rosa dela Cruz", "", null, "2026-03-20"],
+  ["3", "Sofia", null, "Reyes", "Sofia Reyes", "2018-07-01", 7, "7 years & 11 months", "Female", 28.5, 125, 18.2, "Overweight", "SR", "Elena Reyes", "Elena Reyes", "", null, "2026-03-19"],
+  ["4", "Miguel", null, "Garcia", "Miguel Garcia", "2021-07-01", 4, "4 years & 11 months", "Male", 14.1, 96, 15.3, "Normal", "MG", "Pedro Garcia", "Mila Garcia", "", null, "2026-03-18"],
+  ["5", "Isabella", null, "Cruz", "Isabella Cruz", "2019-07-01", 6, "6 years & 11 months", "Female", 16.5, 105, 15, "Stunted", "IC", "Lorna Cruz", "Lorna Cruz", "", null, "2026-03-18"],
+  ["6", "Carlos", null, "Mendoza", "Carlos Mendoza", "2023-07-01", 2, "2 years & 11 months", "Male", 10.2, 82, 15.2, "Normal", "CM", "Margie Mendoza", "Margie Mendoza", "", null, "2026-03-17"],
 ];
 
 const seedMeals = [
@@ -72,7 +72,7 @@ async function seedDatabase() {
     await pool.query(
       `INSERT INTO children (
         id, first_name, middle_name, last_name, name, birth_date, age, age_display, gender,
-        weight, height, bmi, status, avatar, parent_name, created_by_email, updated_at
+        weight, height, bmi, status, avatar, parent_name, mother_name, allergies, created_by_email, updated_at
       ) VALUES ?`,
       [seedChildren],
     );
@@ -115,6 +115,8 @@ function toChild(row) {
     status: row.status,
     avatar: row.avatar,
     parentName: row.parent_name,
+    motherName: row.mother_name || row.parent_name,
+    allergies: row.allergies || "",
     createdByEmail: row.created_by_email || undefined,
     updatedAt: row.updated_at || undefined,
   };
@@ -140,6 +142,10 @@ function toGrowth(row) {
     weight: Number(row.weight),
     height: Number(row.height),
   };
+}
+
+function isPositiveNumber(value) {
+  return Number.isFinite(Number(value)) && Number(value) > 0;
 }
 
 async function readRequestBody(request) {
@@ -224,13 +230,47 @@ async function handleApi(request, response, pathname) {
     return true;
   }
 
+  if (request.method === "POST" && pathname === "/api/auth/reset-password") {
+    const { email, currentPassword, newPassword, role } = await readRequestBody(request);
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedRole = String(role || "").trim().toLowerCase();
+
+    if (!normalizedEmail || !currentPassword || !newPassword || !["admin", "user"].includes(normalizedRole)) {
+      sendJson(response, 400, { success: false, message: "Email, current password, new password, and account type are required." });
+      return true;
+    }
+
+    if (String(newPassword).length < 8) {
+      sendJson(response, 400, { success: false, message: "Use at least 8 characters for your new password." });
+      return true;
+    }
+
+    const [result] = await pool.query(
+      "UPDATE users SET password_hash = ? WHERE email = ? AND password_hash = ? AND role = ?",
+      [hashPassword(String(newPassword)), normalizedEmail, hashPassword(String(currentPassword)), normalizedRole],
+    );
+
+    if (result.affectedRows === 0) {
+      sendJson(response, 401, { success: false, message: "Current email or password is incorrect." });
+      return true;
+    }
+
+    sendJson(response, 200, { success: true, message: "Password reset successfully." });
+    return true;
+  }
+
   if (request.method === "POST" && pathname === "/api/children") {
     const { child, growthRecord } = await readRequestBody(request);
+    if (!child?.id || !child?.firstName || !child?.lastName || !child?.birthDate || !child?.gender || !isPositiveNumber(child.weight) || !isPositiveNumber(child.height)) {
+      sendJson(response, 400, { message: "Child name, birthdate, gender, weight, and height are required." });
+      return true;
+    }
+
     await pool.query(
       `INSERT INTO children (
         id, first_name, middle_name, last_name, name, birth_date, age, age_display, gender,
-        weight, height, bmi, status, avatar, parent_name, created_by_email, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        weight, height, bmi, status, avatar, parent_name, mother_name, allergies, created_by_email, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         child.id,
         child.firstName,
@@ -247,6 +287,8 @@ async function handleApi(request, response, pathname) {
         child.status,
         child.avatar,
         child.parentName,
+        child.motherName || child.parentName,
+        child.allergies || "",
         child.createdByEmail || null,
         child.updatedAt || null,
       ],
@@ -275,6 +317,11 @@ async function handleApi(request, response, pathname) {
 
   if (request.method === "POST" && pathname === "/api/growth-records") {
     const { childId, record, child } = await readRequestBody(request);
+    if (!childId || !record?.date || !isPositiveNumber(record.weight) || !isPositiveNumber(record.height) || !child) {
+      sendJson(response, 400, { message: "Child, date, weight, and height are required for a growth update." });
+      return true;
+    }
+
     await pool.query("INSERT INTO growth_records (child_id, date_value, weight, height) VALUES (?, ?, ?, ?)", [
       childId,
       record.date,

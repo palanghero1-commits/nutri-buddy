@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS children (
   status ENUM('Normal', 'Underweight', 'Overweight', 'Stunted') NOT NULL,
   avatar VARCHAR(12) NOT NULL,
   parent_name VARCHAR(150) NOT NULL,
+  mother_name VARCHAR(150) NOT NULL,
+  allergies TEXT NULL,
   created_by_email VARCHAR(190) NULL,
   updated_at VARCHAR(10) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP

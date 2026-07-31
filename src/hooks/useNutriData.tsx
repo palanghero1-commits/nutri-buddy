@@ -22,6 +22,8 @@ type AddChildInput = {
   weight: number;
   height: number;
   parentName: string;
+  motherName: string;
+  allergies?: string;
   createdByEmail?: string;
 };
 
@@ -246,22 +248,24 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
     () =>
       childProfiles.map((child) => {
         const nameParts = splitName(child.name);
+        const normalizedChild = {
+          ...child,
+          firstName: child.firstName || nameParts.firstName,
+          middleName: child.middleName || nameParts.middleName,
+          lastName: child.lastName || nameParts.lastName,
+          motherName: child.motherName || child.parentName,
+          allergies: child.allergies || "",
+        };
 
         if (!child.birthDate) {
           return {
-            ...child,
-            firstName: child.firstName || nameParts.firstName,
-            middleName: child.middleName || nameParts.middleName,
-            lastName: child.lastName || nameParts.lastName,
+            ...normalizedChild,
             ageDisplay: child.ageDisplay || `${child.age} years old`,
           };
         }
 
         return {
-          ...child,
-          firstName: child.firstName || nameParts.firstName,
-          middleName: child.middleName || nameParts.middleName,
-          lastName: child.lastName || nameParts.lastName,
+          ...normalizedChild,
           age: getChildAgeParts(child.birthDate).years,
           ageDisplay: formatChildAge(child.birthDate),
         };
@@ -306,6 +310,8 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
       status: deriveStatus(age, input.height, bmi),
       avatar: createAvatar(name),
       parentName: input.parentName.trim(),
+      motherName: input.motherName.trim(),
+      allergies: input.allergies?.trim() || "",
       createdByEmail: input.createdByEmail,
       updatedAt: today,
     };

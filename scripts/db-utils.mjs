@@ -47,6 +47,8 @@ export const schemaStatements = [
     status ENUM('Normal', 'Underweight', 'Overweight', 'Stunted') NOT NULL,
     avatar VARCHAR(12) NOT NULL,
     parent_name VARCHAR(150) NOT NULL,
+    mother_name VARCHAR(150) NOT NULL,
+    allergies TEXT NULL,
     created_by_email VARCHAR(190) NULL,
     updated_at VARCHAR(10) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -125,10 +127,32 @@ export async function ensureSchema(connection) {
   for (const statement of schemaStatements) {
     await connection.query(statement);
   }
+
+  await ensureChildrenColumns(connection);
 }
 
 export async function ensureDatabaseSchema(connectionOrPool) {
   await ensureSchema(connectionOrPool);
+}
+
+async function ensureChildrenColumns(connection) {
+  const [columns] = await connection.query(
+    `SELECT column_name AS columnName
+     FROM information_schema.columns
+     WHERE table_schema = ? AND table_name = 'children'`,
+    [dbConfig.database],
+  );
+  const existingColumns = new Set(columns.map((column) => column.columnName));
+
+  if (!existingColumns.has("mother_name")) {
+    await connection.query("ALTER TABLE children ADD COLUMN mother_name VARCHAR(150) NULL AFTER parent_name");
+    await connection.query("UPDATE children SET mother_name = parent_name WHERE mother_name IS NULL OR mother_name = ''");
+    await connection.query("ALTER TABLE children MODIFY mother_name VARCHAR(150) NOT NULL");
+  }
+
+  if (!existingColumns.has("allergies")) {
+    await connection.query("ALTER TABLE children ADD COLUMN allergies TEXT NULL AFTER mother_name");
+  }
 }
 
 export async function seedDefaultUsers(connectionOrPool) {

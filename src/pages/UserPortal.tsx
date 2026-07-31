@@ -37,6 +37,8 @@ export default function UserPortal() {
     gender: "Female",
     weight: "",
     height: "",
+    motherName: currentUser?.name || "",
+    allergies: "",
   });
   const [mealForm, setMealForm] = useState({
     childId: "",
@@ -87,6 +89,8 @@ export default function UserPortal() {
       weight: Number(childForm.weight),
       height: Number(childForm.height),
       parentName: currentUser.name,
+      motherName: childForm.motherName,
+      allergies: childForm.allergies,
       createdByEmail: currentUser.email,
     });
 
@@ -98,6 +102,8 @@ export default function UserPortal() {
       gender: "Female",
       weight: "",
       height: "",
+      motherName: currentUser.name,
+      allergies: "",
     });
     setMessage("Child profile saved. The admin dashboard now uses this record.");
     setActiveDialog(null);
@@ -363,6 +369,25 @@ export default function UserPortal() {
                   value={childForm.height}
                   onChange={(event) => setChildForm((current) => ({ ...current, height: event.target.value }))}
                   className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                />
+              </label>
+              <label className="text-sm text-foreground sm:col-span-2">
+                Mother's Name
+                <input
+                  required
+                  value={childForm.motherName}
+                  onChange={(event) => setChildForm((current) => ({ ...current, motherName: event.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                />
+              </label>
+              <label className="text-sm text-foreground sm:col-span-2">
+                Allergies
+                <textarea
+                  rows={3}
+                  placeholder="Enter known allergies, or type None"
+                  value={childForm.allergies}
+                  onChange={(event) => setChildForm((current) => ({ ...current, allergies: event.target.value }))}
+                  className="mt-1 w-full resize-none rounded-lg border border-input bg-background px-3 py-2.5"
                 />
               </label>
             </div>

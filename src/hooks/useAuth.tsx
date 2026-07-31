@@ -12,6 +12,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   loginUser: (email: string, password: string) => Promise<boolean>;
   registerUser: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  resetPassword: (email: string, currentPassword: string, newPassword: string, role: "admin" | "user") => Promise<{ success: boolean; message: string }>;
   logout: () => void;
 }
 
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => false,
   loginUser: async () => false,
   registerUser: async () => ({ success: false, message: "" }),
+  resetPassword: async () => ({ success: false, message: "" }),
   logout: () => {},
 });
 
@@ -113,6 +115,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const resetPassword = async (email: string, currentPassword: string, newPassword: string, role: "admin" | "user") => {
+    try {
+      const result = await apiRequest<AuthResponse>("/api/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({ email, currentPassword, newPassword, role }),
+      });
+
+      return {
+        success: true,
+        message: result.message || "Password reset successfully.",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Password reset failed.",
+      };
+    }
+  };
+
   const logout = () => {
     setIsAdmin(false);
     setCurrentUser(null);
@@ -120,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(USER_SESSION_KEY);
   };
 
-  return <AuthContext.Provider value={{ isAdmin, currentUser, login, loginUser, registerUser, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ isAdmin, currentUser, login, loginUser, registerUser, resetPassword, logout }}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContext);

@@ -66,7 +66,12 @@ export default function ChildrenList() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="grid gap-1 text-xs text-muted-foreground">
+              <p className="break-words">Mother: {child.motherName || child.parentName}</p>
+              <p className="break-words">Allergies: {child.allergies?.trim() || "None recorded"}</p>
+            </div>
+
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                 child.status === "Normal" ? "bg-sage text-sage-deep" :
                 child.status === "Underweight" ? "bg-peach text-warning-foreground" :

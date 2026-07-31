@@ -1,4 +1,4 @@
-import { Activity, CalendarDays, Ruler, Scale, Salad, TrendingUp } from "lucide-react";
+import { Activity, CalendarDays, HeartPulse, Ruler, Scale, Salad, TrendingUp, UserRound } from "lucide-react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -95,6 +95,41 @@ export default function UserChildProfile() {
                 <dd className="font-medium text-foreground">{child.birthDate}</dd>
               </div>
             </dl>
+          </div>
+        </section>
+
+        <section className="mt-5 grid gap-5 lg:grid-cols-2">
+          <div className="section-enter stagger-2 rounded-xl border border-border/70 bg-card p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-semibold text-foreground">Mother Information</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Mother details linked to this child profile.</p>
+              </div>
+              <UserRound className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <dl className="mt-5 grid gap-3 text-sm">
+              <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
+                <dt className="text-muted-foreground">Mother's Name</dt>
+                <dd className="font-medium text-foreground">{child.motherName || child.parentName}</dd>
+              </div>
+              <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
+                <dt className="text-muted-foreground">Parent/Guardian</dt>
+                <dd className="font-medium text-foreground">{child.parentName}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="section-enter stagger-2 rounded-xl border border-border/70 bg-card p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-semibold text-foreground">Allergies</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Known allergies recorded for this child.</p>
+              </div>
+              <HeartPulse className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="mt-5 rounded-lg bg-muted/60 p-4 text-sm font-medium text-foreground">
+              {child.allergies?.trim() || "None recorded"}
+            </div>
           </div>
         </section>
 

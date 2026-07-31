@@ -16,6 +16,8 @@ export interface Child {
   status: ChildStatus;
   avatar: string;
   parentName: string;
+  motherName: string;
+  allergies: string;
   createdByEmail?: string;
   updatedAt?: string;
 }
@@ -100,6 +102,8 @@ export const seedChildren: Child[] = [
     status: "Normal",
     avatar: "MS",
     parentName: "Ana Santos",
+    motherName: "Ana Santos",
+    allergies: "",
     updatedAt: "2026-03-20",
   },
   {
@@ -118,6 +122,8 @@ export const seedChildren: Child[] = [
     status: "Underweight",
     avatar: "JC",
     parentName: "Rosa dela Cruz",
+    motherName: "Rosa dela Cruz",
+    allergies: "",
     updatedAt: "2026-03-20",
   },
   {
@@ -135,6 +141,8 @@ export const seedChildren: Child[] = [
     status: "Overweight",
     avatar: "SR",
     parentName: "Elena Reyes",
+    motherName: "Elena Reyes",
+    allergies: "",
     updatedAt: "2026-03-19",
   },
   {
@@ -152,6 +160,8 @@ export const seedChildren: Child[] = [
     status: "Normal",
     avatar: "MG",
     parentName: "Pedro Garcia",
+    motherName: "Mila Garcia",
+    allergies: "",
     updatedAt: "2026-03-18",
   },
   {
@@ -169,6 +179,8 @@ export const seedChildren: Child[] = [
     status: "Stunted",
     avatar: "IC",
     parentName: "Lorna Cruz",
+    motherName: "Lorna Cruz",
+    allergies: "",
     updatedAt: "2026-03-18",
   },
   {
@@ -186,6 +198,8 @@ export const seedChildren: Child[] = [
     status: "Normal",
     avatar: "CM",
     parentName: "Margie Mendoza",
+    motherName: "Margie Mendoza",
+    allergies: "",
     updatedAt: "2026-03-17",
   },
 ];

@@ -3,13 +3,28 @@ import { Navigate, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff, Leaf, UserRound } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function UserLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { currentUser, loginUser } = useAuth();
+  const [isResetting, setIsResetting] = useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const { currentUser, loginUser, resetPassword } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -43,6 +58,46 @@ export default function UserLogin() {
 
       setIsLoading(false);
     }, 700);
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!email.trim() || !currentPassword.trim() || !newPassword.trim()) {
+      toast({
+        title: "Missing details",
+        description: "Enter your email, current password, and new password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast({
+        title: "Password too short",
+        description: "Use at least 8 characters for your new password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsResetting(true);
+    const result = await resetPassword(email, currentPassword, newPassword, "user");
+
+    toast({
+      title: result.success ? "Password updated" : "Reset failed",
+      description: result.message,
+      variant: result.success ? "default" : "destructive",
+    });
+
+    if (result.success) {
+      setPassword("");
+      setCurrentPassword("");
+      setNewPassword("");
+      setIsResetDialogOpen(false);
+    }
+
+    setIsResetting(false);
   };
 
   return (
@@ -125,6 +180,14 @@ export default function UserLogin() {
             </button>
           </form>
 
+          <button
+            type="button"
+            onClick={() => setIsResetDialogOpen(true)}
+            className="mt-4 w-full text-sm font-medium text-primary hover:underline"
+          >
+            Reset password
+          </button>
+
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Need an account?{" "}
             <Link to="/user/register" className="font-medium text-primary hover:underline">
@@ -137,6 +200,62 @@ export default function UserLogin() {
           </p>
         </div>
       </div>
+
+      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>Enter your current password before choosing a new one.</DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="user-reset-email">Email</Label>
+              <Input
+                id="user-reset-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="user-current-password">Current password</Label>
+              <Input
+                id="user-current-password"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="user-new-password">New password</Label>
+              <Input
+                id="user-new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+                required
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsResetDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isResetting}>
+                {isResetting ? "Updating..." : "Update Password"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
