@@ -11,7 +11,12 @@ interface AuthContextType {
   currentUser: UserSession | null;
   login: (email: string, password: string) => Promise<boolean>;
   loginUser: (email: string, password: string) => Promise<boolean>;
-  registerUser: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  registerUser: (
+    name: string,
+    email: string,
+    password: string,
+    verification: { residentAddress: string; contactNumber?: string; residencyConfirmed: boolean },
+  ) => Promise<{ success: boolean; message: string }>;
   resetPassword: (email: string, currentPassword: string, newPassword: string, role: "admin" | "user") => Promise<{ success: boolean; message: string }>;
   logout: () => void;
 }
@@ -87,11 +92,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const registerUser = async (name: string, email: string, password: string) => {
+  const registerUser = async (
+    name: string,
+    email: string,
+    password: string,
+    verification: { residentAddress: string; contactNumber?: string; residencyConfirmed: boolean },
+  ) => {
     try {
       const result = await apiRequest<AuthResponse>("/api/auth/register", {
         method: "POST",
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, ...verification }),
       });
 
       if (!result.user) {

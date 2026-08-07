@@ -35,8 +35,8 @@ try {
   await connection.query(
     `INSERT INTO children (
       id, first_name, middle_name, last_name, name, birth_date, age, age_display, gender,
-      weight, height, bmi, status, avatar, parent_name, mother_name, allergies, created_by_email, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      weight, height, bmi, status, avatar, parent_name, mother_name, father_name, parent_address, allergies, created_by_email, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       testId,
       "Database",
@@ -54,6 +54,8 @@ try {
       "DC",
       "Check Parent",
       "Check Mother",
+      "Check Father",
+      "Check Address",
       "Peanuts",
       testEmail,
       "2026-06-26",
@@ -84,10 +86,10 @@ try {
     throw new Error("Database write/read check failed.");
   }
 
-  const [[childCheck]] = await connection.query("SELECT mother_name AS motherName, allergies FROM children WHERE id = ?", [testId]);
+  const [[childCheck]] = await connection.query("SELECT mother_name AS motherName, father_name AS fatherName, parent_address AS address, allergies FROM children WHERE id = ?", [testId]);
 
-  if (childCheck.motherName !== "Check Mother" || childCheck.allergies !== "Peanuts") {
-    throw new Error("Child mother/allergy field check failed.");
+  if (childCheck.motherName !== "Check Mother" || childCheck.fatherName !== "Check Father" || childCheck.address !== "Check Address" || childCheck.allergies !== "Peanuts") {
+    throw new Error("Child parent information/allergy field check failed.");
   }
 
   await connection.query("DELETE FROM children WHERE id = ?", [testId]);

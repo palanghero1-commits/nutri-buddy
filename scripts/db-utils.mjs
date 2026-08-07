@@ -28,6 +28,9 @@ export const schemaStatements = [
     email VARCHAR(190) NOT NULL UNIQUE,
     password_hash CHAR(64) NOT NULL,
     role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
+    resident_address TEXT NULL,
+    contact_number VARCHAR(40) NULL,
+    residency_confirmed TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 
@@ -48,6 +51,8 @@ export const schemaStatements = [
     avatar VARCHAR(12) NOT NULL,
     parent_name VARCHAR(150) NOT NULL,
     mother_name VARCHAR(150) NOT NULL,
+    father_name VARCHAR(150) NOT NULL,
+    parent_address TEXT NULL,
     allergies TEXT NULL,
     created_by_email VARCHAR(190) NULL,
     updated_at VARCHAR(10) NULL,
@@ -129,6 +134,7 @@ export async function ensureSchema(connection) {
   }
 
   await ensureChildrenColumns(connection);
+  await ensureUserColumns(connection);
 }
 
 export async function ensureDatabaseSchema(connectionOrPool) {
@@ -150,8 +156,40 @@ async function ensureChildrenColumns(connection) {
     await connection.query("ALTER TABLE children MODIFY mother_name VARCHAR(150) NOT NULL");
   }
 
+  if (!existingColumns.has("father_name")) {
+    await connection.query("ALTER TABLE children ADD COLUMN father_name VARCHAR(150) NULL AFTER mother_name");
+    await connection.query("UPDATE children SET father_name = parent_name WHERE father_name IS NULL OR father_name = ''");
+    await connection.query("ALTER TABLE children MODIFY father_name VARCHAR(150) NOT NULL");
+  }
+
+  if (!existingColumns.has("parent_address")) {
+    await connection.query("ALTER TABLE children ADD COLUMN parent_address TEXT NULL AFTER father_name");
+  }
+
   if (!existingColumns.has("allergies")) {
-    await connection.query("ALTER TABLE children ADD COLUMN allergies TEXT NULL AFTER mother_name");
+    await connection.query("ALTER TABLE children ADD COLUMN allergies TEXT NULL AFTER parent_address");
+  }
+}
+
+async function ensureUserColumns(connection) {
+  const [columns] = await connection.query(
+    `SELECT column_name AS columnName
+     FROM information_schema.columns
+     WHERE table_schema = ? AND table_name = 'users'`,
+    [dbConfig.database],
+  );
+  const existingColumns = new Set(columns.map((column) => column.columnName));
+
+  if (!existingColumns.has("resident_address")) {
+    await connection.query("ALTER TABLE users ADD COLUMN resident_address TEXT NULL AFTER role");
+  }
+
+  if (!existingColumns.has("contact_number")) {
+    await connection.query("ALTER TABLE users ADD COLUMN contact_number VARCHAR(40) NULL AFTER resident_address");
+  }
+
+  if (!existingColumns.has("residency_confirmed")) {
+    await connection.query("ALTER TABLE users ADD COLUMN residency_confirmed TINYINT(1) NOT NULL DEFAULT 0 AFTER contact_number");
   }
 }
 

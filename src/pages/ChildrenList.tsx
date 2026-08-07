@@ -67,11 +67,10 @@ export default function ChildrenList() {
             </div>
 
             <div className="grid gap-1 text-xs text-muted-foreground">
-              <p className="break-words">Mother: {child.motherName || child.parentName}</p>
               <p className="break-words">Allergies: {child.allergies?.trim() || "None recorded"}</p>
             </div>
 
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-3">
               <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                 child.status === "Normal" ? "bg-sage text-sage-deep" :
                 child.status === "Underweight" ? "bg-peach text-warning-foreground" :
@@ -80,7 +79,16 @@ export default function ChildrenList() {
               }`}>
                 {child.status}
               </span>
-              <span className="break-words text-xs text-muted-foreground">Parent: {child.parentName}</span>
+            </div>
+
+            <div className="mt-3 border-t border-border pt-3">
+              <p className="text-xs font-semibold text-foreground">Parent Information</p>
+              <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
+                <p className="break-words">Mother: {child.motherName || child.parentName}</p>
+                <p className="break-words">Father: {child.fatherName || "Not recorded"}</p>
+                <p className="break-words">Parent/Guardian: {child.parentName}</p>
+                <p className="break-words">Address: {child.address || "Not recorded"}</p>
+              </div>
             </div>
           </div>
         ))}

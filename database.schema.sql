@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(190) NOT NULL UNIQUE,
   password_hash CHAR(64) NOT NULL,
   role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
+  resident_address TEXT NULL,
+  contact_number VARCHAR(40) NULL,
+  residency_confirmed TINYINT(1) NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -30,6 +33,8 @@ CREATE TABLE IF NOT EXISTS children (
   avatar VARCHAR(12) NOT NULL,
   parent_name VARCHAR(150) NOT NULL,
   mother_name VARCHAR(150) NOT NULL,
+  father_name VARCHAR(150) NOT NULL,
+  parent_address TEXT NULL,
   allergies TEXT NULL,
   created_by_email VARCHAR(190) NULL,
   updated_at VARCHAR(10) NULL,

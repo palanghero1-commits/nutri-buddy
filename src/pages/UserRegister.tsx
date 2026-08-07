@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigate, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, Leaf, UserPlus } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Eye, EyeOff, Leaf, MapPin, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -9,6 +9,10 @@ export default function UserRegister() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [residentAddress, setResidentAddress] = useState("");
+  const [contactNumber, setContactNumber] = useState("");
+  const [residencyConfirmed, setResidencyConfirmed] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { currentUser, registerUser } = useAuth();
@@ -19,8 +23,32 @@ export default function UserRegister() {
     return <Navigate to="/user" replace />;
   }
 
+  const handleVerification = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!residentAddress.trim() || !residencyConfirmed) {
+      toast({
+        title: "Verification needed",
+        description: "Confirm the resident's Tinampa-an address before creating an account.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsVerified(true);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isVerified) {
+      toast({
+        title: "Verify residency first",
+        description: "Complete the Tinampa-an residency verification step before registration.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
       return;
@@ -46,7 +74,11 @@ export default function UserRegister() {
 
     setIsLoading(true);
     setTimeout(async () => {
-      const result = await registerUser(name, email, password);
+      const result = await registerUser(name, email, password, {
+        residentAddress: `${residentAddress.trim()}, Barangay Tinampa-an, Cadiz City`,
+        contactNumber: contactNumber.trim(),
+        residencyConfirmed,
+      });
 
       if (result.success) {
         toast({
@@ -101,9 +133,87 @@ export default function UserRegister() {
           </div>
 
           <h1 className="text-2xl font-bold text-foreground mt-4">Register</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Create your Nutri-Track user account.</p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Verify Tinampa-an residency first, then create your account.
+          </p>
 
+          <div className="mt-6 grid grid-cols-2 gap-2 text-xs font-medium">
+            <div className={`rounded-lg border px-3 py-2 ${isVerified ? "border-primary bg-primary/10 text-primary" : "border-border bg-muted text-foreground"}`}>
+              1. Verification
+            </div>
+            <div className={`rounded-lg border px-3 py-2 ${isVerified ? "border-border bg-muted text-foreground" : "border-border bg-background text-muted-foreground"}`}>
+              2. Account
+            </div>
+          </div>
+
+          {!isVerified ? (
+            <form onSubmit={handleVerification} className="mt-8 space-y-5">
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <div className="flex items-start gap-3">
+                  <MapPin className="mt-0.5 h-4 w-4 text-primary" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Tinampa-an Resident Verification</p>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      This portal is for parents and guardians living in Barangay Tinampa-an, Cadiz City.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Purok / Sitio / Street</label>
+                <input
+                  type="text"
+                  value={residentAddress}
+                  onChange={(e) => setResidentAddress(e.target.value)}
+                  placeholder="Example: Purok 2"
+                  required
+                  className="w-full px-4 py-2.5 rounded-lg border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 transition-shadow"
+                />
+                <p className="mt-1.5 text-xs text-muted-foreground">Barangay Tinampa-an, Cadiz City</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Contact number</label>
+                <input
+                  type="tel"
+                  value={contactNumber}
+                  onChange={(e) => setContactNumber(e.target.value)}
+                  placeholder="Optional"
+                  className="w-full px-4 py-2.5 rounded-lg border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 transition-shadow"
+                />
+              </div>
+
+              <label className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  checked={residencyConfirmed}
+                  onChange={(e) => setResidencyConfirmed(e.target.checked)}
+                  required
+                  className="mt-1 h-4 w-4 rounded border-input"
+                />
+                <span>
+                  I confirm that I am a resident of Barangay Tinampa-an and the information provided is true.
+                </span>
+              </label>
+
+              <button
+                type="submit"
+                className="w-full py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all"
+              >
+                Continue to Account Setup
+              </button>
+            </form>
+          ) : (
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
+              <div>
+                <p className="font-medium text-foreground">Residency verified</p>
+                <p className="mt-1 text-muted-foreground">{residentAddress.trim()}, Barangay Tinampa-an, Cadiz City</p>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">Full name</label>
               <input
@@ -169,6 +279,7 @@ export default function UserRegister() {
               {isLoading ? "Creating account..." : "Create Account"}
             </button>
           </form>
+          )}
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Already registered?{" "}

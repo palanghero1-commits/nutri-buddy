@@ -25,12 +25,12 @@ const contentTypes = {
 };
 
 const seedChildren = [
-  ["1", "Maria", null, "Santos", "Maria Santos", "2020-07-01", 5, "5 years & 11 months", "Female", 17.2, 108, 14.7, "Normal", "MS", "Ana Santos", "Ana Santos", "", null, "2026-03-20"],
-  ["2", "Juan", "dela", "Cruz", "Juan dela Cruz", "2022-07-01", 3, "3 years & 11 months", "Male", 11.8, 92, 13.9, "Underweight", "JC", "Rosa dela Cruz", "Rosa dela Cruz", "", null, "2026-03-20"],
-  ["3", "Sofia", null, "Reyes", "Sofia Reyes", "2018-07-01", 7, "7 years & 11 months", "Female", 28.5, 125, 18.2, "Overweight", "SR", "Elena Reyes", "Elena Reyes", "", null, "2026-03-19"],
-  ["4", "Miguel", null, "Garcia", "Miguel Garcia", "2021-07-01", 4, "4 years & 11 months", "Male", 14.1, 96, 15.3, "Normal", "MG", "Pedro Garcia", "Mila Garcia", "", null, "2026-03-18"],
-  ["5", "Isabella", null, "Cruz", "Isabella Cruz", "2019-07-01", 6, "6 years & 11 months", "Female", 16.5, 105, 15, "Stunted", "IC", "Lorna Cruz", "Lorna Cruz", "", null, "2026-03-18"],
-  ["6", "Carlos", null, "Mendoza", "Carlos Mendoza", "2023-07-01", 2, "2 years & 11 months", "Male", 10.2, 82, 15.2, "Normal", "CM", "Margie Mendoza", "Margie Mendoza", "", null, "2026-03-17"],
+  ["1", "Maria", null, "Santos", "Maria Santos", "2020-07-01", 5, "5 years & 11 months", "Female", 17.2, 108, 14.7, "Normal", "MS", "Ana Santos", "Ana Santos", "Not recorded", "Barangay Tinampa-an, Cadiz City", "", null, "2026-03-20"],
+  ["2", "Juan", "dela", "Cruz", "Juan dela Cruz", "2022-07-01", 3, "3 years & 11 months", "Male", 11.8, 92, 13.9, "Underweight", "JC", "Rosa dela Cruz", "Rosa dela Cruz", "Not recorded", "Barangay Tinampa-an, Cadiz City", "", null, "2026-03-20"],
+  ["3", "Sofia", null, "Reyes", "Sofia Reyes", "2018-07-01", 7, "7 years & 11 months", "Female", 28.5, 125, 18.2, "Overweight", "SR", "Elena Reyes", "Elena Reyes", "Not recorded", "Barangay Tinampa-an, Cadiz City", "", null, "2026-03-19"],
+  ["4", "Miguel", null, "Garcia", "Miguel Garcia", "2021-07-01", 4, "4 years & 11 months", "Male", 14.1, 96, 15.3, "Normal", "MG", "Pedro Garcia", "Mila Garcia", "Pedro Garcia", "Barangay Tinampa-an, Cadiz City", "", null, "2026-03-18"],
+  ["5", "Isabella", null, "Cruz", "Isabella Cruz", "2019-07-01", 6, "6 years & 11 months", "Female", 16.5, 105, 15, "Stunted", "IC", "Lorna Cruz", "Lorna Cruz", "Not recorded", "Barangay Tinampa-an, Cadiz City", "", null, "2026-03-18"],
+  ["6", "Carlos", null, "Mendoza", "Carlos Mendoza", "2023-07-01", 2, "2 years & 11 months", "Male", 10.2, 82, 15.2, "Normal", "CM", "Margie Mendoza", "Margie Mendoza", "Not recorded", "Barangay Tinampa-an, Cadiz City", "", null, "2026-03-17"],
 ];
 
 const seedMeals = [
@@ -53,11 +53,73 @@ const seedGrowth = [
 ];
 
 let pool;
+let usingMemoryStore = false;
+
+const memoryStore = {
+  users: [
+    { name: "System Admin", email: "admin@nutritrack.gov.ph", passwordHash: hashPassword("admin123"), role: "admin" },
+    { name: "Maria Santos", email: "user@nutritrack.app", passwordHash: hashPassword("user12345"), role: "user" },
+  ],
+  children: seedChildren.map((child) => ({
+    id: child[0],
+    firstName: child[1],
+    middleName: child[2] || undefined,
+    lastName: child[3],
+    name: child[4],
+    birthDate: child[5],
+    age: child[6],
+    ageDisplay: child[7],
+    gender: child[8],
+    weight: child[9],
+    height: child[10],
+    bmi: child[11],
+    status: child[12],
+    avatar: child[13],
+    parentName: child[14],
+    motherName: child[15],
+    fatherName: child[16],
+    address: child[17] || "",
+    allergies: child[18] || "",
+    createdByEmail: child[19] || undefined,
+    updatedAt: child[20] || undefined,
+  })),
+  mealEntries: seedMeals.map((meal) => ({
+    id: meal[0],
+    childId: meal[1],
+    date: meal[2],
+    mealType: meal[3],
+    foods: [...meal[4]],
+    calories: meal[5],
+    protein: meal[6],
+    carbs: meal[7],
+    fat: meal[8],
+  })),
+  growthData: seedGrowth.reduce((records, growth) => {
+    const [childId, date, weight, height] = growth;
+    records[childId] = records[childId] || [];
+    records[childId].push({ date, weight, height });
+    return records;
+  }, {}),
+};
 
 async function initializeDatabase() {
   pool = await createDbPool();
   await ensureDatabaseSchema(pool);
   await seedDatabase();
+}
+
+async function initializeDataStore() {
+  try {
+    await initializeDatabase();
+  } catch (error) {
+    if (process.env.NODE_ENV === "production") {
+      throw error;
+    }
+
+    usingMemoryStore = true;
+    console.warn("MySQL is unavailable. Starting API with in-memory demo data for this development session.");
+    console.warn(`MySQL error: ${error.code || error.message}`);
+  }
 }
 
 async function seedDatabase() {
@@ -72,7 +134,7 @@ async function seedDatabase() {
     await pool.query(
       `INSERT INTO children (
         id, first_name, middle_name, last_name, name, birth_date, age, age_display, gender,
-        weight, height, bmi, status, avatar, parent_name, mother_name, allergies, created_by_email, updated_at
+        weight, height, bmi, status, avatar, parent_name, mother_name, father_name, parent_address, allergies, created_by_email, updated_at
       ) VALUES ?`,
       [seedChildren],
     );
@@ -116,6 +178,8 @@ function toChild(row) {
     avatar: row.avatar,
     parentName: row.parent_name,
     motherName: row.mother_name || row.parent_name,
+    fatherName: row.father_name || row.parent_name,
+    address: row.parent_address || "",
     allergies: row.allergies || "",
     createdByEmail: row.created_by_email || undefined,
     updatedAt: row.updated_at || undefined,
@@ -161,6 +225,14 @@ function sendJson(response, status, payload) {
 }
 
 async function getNutritionData() {
+  if (usingMemoryStore) {
+    return {
+      children: memoryStore.children,
+      mealEntries: memoryStore.mealEntries,
+      growthData: memoryStore.growthData,
+    };
+  }
+
   const [childRows] = await pool.query("SELECT * FROM children ORDER BY created_at DESC, id DESC");
   const [mealRows] = await pool.query("SELECT * FROM meal_entries ORDER BY date_value DESC, created_at DESC");
   const [growthRows] = await pool.query("SELECT * FROM growth_records ORDER BY date_value ASC, id ASC");
@@ -178,10 +250,19 @@ async function getNutritionData() {
   };
 }
 
+function findMemoryUser(email, password, role) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const passwordHash = hashPassword(String(password || ""));
+
+  return memoryStore.users.find((user) => user.email === normalizedEmail && user.passwordHash === passwordHash && user.role === role);
+}
+
 async function handleApi(request, response, pathname) {
   if (request.method === "GET" && pathname === "/api/health") {
-    await pool.query("SELECT 1");
-    sendJson(response, 200, { ok: true, database: dbConfig.database });
+    if (!usingMemoryStore) {
+      await pool.query("SELECT 1");
+    }
+    sendJson(response, 200, { ok: true, database: usingMemoryStore ? "memory" : dbConfig.database });
     return true;
   }
 
@@ -192,6 +273,12 @@ async function handleApi(request, response, pathname) {
 
   if (request.method === "POST" && pathname === "/api/auth/admin-login") {
     const { email, password } = await readRequestBody(request);
+    if (usingMemoryStore) {
+      const user = findMemoryUser(email, password, "admin");
+      sendJson(response, user ? 200 : 401, user ? { success: true, user: { name: user.name, email: user.email } } : { success: false, message: "Invalid email or password." });
+      return true;
+    }
+
     const [rows] = await pool.query("SELECT name, email FROM users WHERE email = ? AND password_hash = ? AND role = 'admin' LIMIT 1", [
       String(email || "").trim().toLowerCase(),
       hashPassword(String(password || "")),
@@ -202,6 +289,12 @@ async function handleApi(request, response, pathname) {
 
   if (request.method === "POST" && pathname === "/api/auth/user-login") {
     const { email, password } = await readRequestBody(request);
+    if (usingMemoryStore) {
+      const user = findMemoryUser(email, password, "user");
+      sendJson(response, user ? 200 : 401, user ? { success: true, user: { name: user.name, email: user.email } } : { success: false, message: "Invalid email or password." });
+      return true;
+    }
+
     const [rows] = await pool.query("SELECT name, email FROM users WHERE email = ? AND password_hash = ? AND role = 'user' LIMIT 1", [
       String(email || "").trim().toLowerCase(),
       hashPassword(String(password || "")),
@@ -211,14 +304,54 @@ async function handleApi(request, response, pathname) {
   }
 
   if (request.method === "POST" && pathname === "/api/auth/register") {
-    const { name, email, password } = await readRequestBody(request);
+    const { name, email, password, residentAddress, contactNumber, residencyConfirmed } = await readRequestBody(request);
     const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedAddress = String(residentAddress || "").trim();
+    const normalizedContactNumber = String(contactNumber || "").trim();
+
+    if (!normalizedAddress || residencyConfirmed !== true) {
+      sendJson(response, 400, { success: false, message: "Tinampa-an residency verification is required before registration." });
+      return true;
+    }
+
+    if (!normalizedAddress.toLowerCase().includes("tinampa-an")) {
+      sendJson(response, 400, { success: false, message: "Address must confirm residency in Barangay Tinampa-an." });
+      return true;
+    }
+
+    if (usingMemoryStore) {
+      if (memoryStore.users.some((user) => user.email === normalizedEmail)) {
+        sendJson(response, 409, { success: false, message: "An account with this email already exists." });
+        return true;
+      }
+
+      const normalizedName = String(name || "").trim();
+      memoryStore.users.push({
+        name: normalizedName,
+        email: normalizedEmail,
+        passwordHash: hashPassword(String(password || "")),
+        role: "user",
+        residentAddress: normalizedAddress,
+        contactNumber: normalizedContactNumber || null,
+        residencyConfirmed: true,
+      });
+      sendJson(response, 201, { success: true, user: { name: normalizedName, email: normalizedEmail } });
+      return true;
+    }
+
     try {
-      await pool.query("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, 'user')", [
+      await pool.query(
+        `INSERT INTO users (
+          name, email, password_hash, role, resident_address, contact_number, residency_confirmed
+        ) VALUES (?, ?, ?, 'user', ?, ?, 1)`,
+        [
         String(name || "").trim(),
         normalizedEmail,
         hashPassword(String(password || "")),
-      ]);
+        normalizedAddress,
+        normalizedContactNumber || null,
+        ],
+      );
       sendJson(response, 201, { success: true, user: { name: String(name || "").trim(), email: normalizedEmail } });
     } catch (error) {
       if (error.code === "ER_DUP_ENTRY") {
@@ -245,6 +378,18 @@ async function handleApi(request, response, pathname) {
       return true;
     }
 
+    if (usingMemoryStore) {
+      const user = findMemoryUser(normalizedEmail, currentPassword, normalizedRole);
+      if (!user) {
+        sendJson(response, 401, { success: false, message: "Current email or password is incorrect." });
+        return true;
+      }
+
+      user.passwordHash = hashPassword(String(newPassword));
+      sendJson(response, 200, { success: true, message: "Password reset successfully." });
+      return true;
+    }
+
     const [result] = await pool.query(
       "UPDATE users SET password_hash = ? WHERE email = ? AND password_hash = ? AND role = ?",
       [hashPassword(String(newPassword)), normalizedEmail, hashPassword(String(currentPassword)), normalizedRole],
@@ -266,11 +411,21 @@ async function handleApi(request, response, pathname) {
       return true;
     }
 
+    if (usingMemoryStore) {
+      memoryStore.children.unshift(child);
+      if (growthRecord) {
+        memoryStore.growthData[child.id] = memoryStore.growthData[child.id] || [];
+        memoryStore.growthData[child.id].push(growthRecord);
+      }
+      sendJson(response, 201, { child });
+      return true;
+    }
+
     await pool.query(
       `INSERT INTO children (
         id, first_name, middle_name, last_name, name, birth_date, age, age_display, gender,
-        weight, height, bmi, status, avatar, parent_name, mother_name, allergies, created_by_email, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        weight, height, bmi, status, avatar, parent_name, mother_name, father_name, parent_address, allergies, created_by_email, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         child.id,
         child.firstName,
@@ -288,6 +443,8 @@ async function handleApi(request, response, pathname) {
         child.avatar,
         child.parentName,
         child.motherName || child.parentName,
+        child.fatherName || child.parentName,
+        child.address || "",
         child.allergies || "",
         child.createdByEmail || null,
         child.updatedAt || null,
@@ -307,6 +464,12 @@ async function handleApi(request, response, pathname) {
 
   if (request.method === "POST" && pathname === "/api/meals") {
     const { meal } = await readRequestBody(request);
+    if (usingMemoryStore) {
+      memoryStore.mealEntries.unshift(meal);
+      sendJson(response, 201, { meal });
+      return true;
+    }
+
     await pool.query(
       "INSERT INTO meal_entries (id, child_id, date_value, meal_type, foods, calories, protein, carbs, fat) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [meal.id, meal.childId, meal.date, meal.mealType, JSON.stringify(meal.foods), meal.calories, meal.protein, meal.carbs, meal.fat],
@@ -319,6 +482,14 @@ async function handleApi(request, response, pathname) {
     const { childId, record, child } = await readRequestBody(request);
     if (!childId || !record?.date || !isPositiveNumber(record.weight) || !isPositiveNumber(record.height) || !child) {
       sendJson(response, 400, { message: "Child, date, weight, and height are required for a growth update." });
+      return true;
+    }
+
+    if (usingMemoryStore) {
+      memoryStore.growthData[childId] = memoryStore.growthData[childId] || [];
+      memoryStore.growthData[childId].push(record);
+      memoryStore.children = memoryStore.children.map((existingChild) => (existingChild.id === childId ? child : existingChild));
+      sendJson(response, 201, { record, child });
       return true;
     }
 
@@ -415,10 +586,14 @@ const server = createServer(async (request, response) => {
   }
 });
 
-initializeDatabase()
+initializeDataStore()
   .then(() => {
     server.listen(port, "0.0.0.0", () => {
-      console.log(`Nutri-Track API connected to MySQL database "${dbConfig.database}" on port ${port}`);
+      if (usingMemoryStore) {
+        console.log(`Nutri-Track API running with in-memory data on port ${port}`);
+      } else {
+        console.log(`Nutri-Track API connected to MySQL database "${dbConfig.database}" on port ${port}`);
+      }
     });
   })
   .catch((error) => {

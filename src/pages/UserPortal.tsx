@@ -38,6 +38,8 @@ export default function UserPortal() {
     weight: "",
     height: "",
     motherName: currentUser?.name || "",
+    fatherName: "",
+    address: "",
     allergies: "",
   });
   const [mealForm, setMealForm] = useState({
@@ -90,6 +92,8 @@ export default function UserPortal() {
       height: Number(childForm.height),
       parentName: currentUser.name,
       motherName: childForm.motherName,
+      fatherName: childForm.fatherName,
+      address: childForm.address,
       allergies: childForm.allergies,
       createdByEmail: currentUser.email,
     });
@@ -103,6 +107,8 @@ export default function UserPortal() {
       weight: "",
       height: "",
       motherName: currentUser.name,
+      fatherName: "",
+      address: "",
       allergies: "",
     });
     setMessage("Child profile saved. The admin dashboard now uses this record.");
@@ -294,102 +300,134 @@ export default function UserPortal() {
             <DialogDescription>Create a child record that appears in admin children lists and reports.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddChild} className="grid gap-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="text-sm text-foreground">
-                First Name
-                <input
-                  required
-                  value={childForm.firstName}
-                  onChange={(event) => setChildForm((current) => ({ ...current, firstName: event.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
-                />
-              </label>
-              <label className="text-sm text-foreground">
-                Middle Name
-                <input
-                  value={childForm.middleName}
-                  onChange={(event) => setChildForm((current) => ({ ...current, middleName: event.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
-                />
-              </label>
-              <label className="text-sm text-foreground">
-                Last Name
-                <input
-                  required
-                  value={childForm.lastName}
-                  onChange={(event) => setChildForm((current) => ({ ...current, lastName: event.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
-                />
-              </label>
-              <label className="text-sm text-foreground">
-                Birthdate
-                <input
-                  required
-                  type="date"
-                  max={today}
-                  value={childForm.birthDate}
-                  onChange={(event) => setChildForm((current) => ({ ...current, birthDate: event.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
-                />
-              </label>
-              <div className="rounded-lg border border-input bg-muted/60 px-3 py-2.5 text-sm text-foreground">
-                <p className="text-xs text-muted-foreground">Calculated Age</p>
-                <p className="mt-1 font-semibold">{calculatedChildAge || "Select birthdate"}</p>
+            <div className="grid gap-3">
+              <h3 className="text-sm font-semibold text-foreground">Child Information</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-sm text-foreground">
+                  First Name
+                  <input
+                    required
+                    value={childForm.firstName}
+                    onChange={(event) => setChildForm((current) => ({ ...current, firstName: event.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+                <label className="text-sm text-foreground">
+                  Middle Name
+                  <input
+                    value={childForm.middleName}
+                    onChange={(event) => setChildForm((current) => ({ ...current, middleName: event.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+                <label className="text-sm text-foreground">
+                  Last Name
+                  <input
+                    required
+                    value={childForm.lastName}
+                    onChange={(event) => setChildForm((current) => ({ ...current, lastName: event.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+                <label className="text-sm text-foreground">
+                  Birthdate
+                  <input
+                    required
+                    type="date"
+                    max={today}
+                    value={childForm.birthDate}
+                    onChange={(event) => setChildForm((current) => ({ ...current, birthDate: event.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+                <div className="rounded-lg border border-input bg-muted/60 px-3 py-2.5 text-sm text-foreground">
+                  <p className="text-xs text-muted-foreground">Calculated Age</p>
+                  <p className="mt-1 font-semibold">{calculatedChildAge || "Select birthdate"}</p>
+                </div>
+                <label className="text-sm text-foreground">
+                  Gender
+                  <select
+                    value={childForm.gender}
+                    onChange={(event) => setChildForm((current) => ({ ...current, gender: event.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  >
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                  </select>
+                </label>
+                <label className="text-sm text-foreground">
+                  Weight (kg)
+                  <input
+                    required
+                    min="1"
+                    step="0.1"
+                    type="number"
+                    value={childForm.weight}
+                    onChange={(event) => setChildForm((current) => ({ ...current, weight: event.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+                <label className="text-sm text-foreground">
+                  Height (cm)
+                  <input
+                    required
+                    min="30"
+                    step="0.1"
+                    type="number"
+                    value={childForm.height}
+                    onChange={(event) => setChildForm((current) => ({ ...current, height: event.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+                <label className="text-sm text-foreground sm:col-span-2">
+                  Allergies
+                  <textarea
+                    rows={3}
+                    placeholder="Enter known allergies, or type None"
+                    value={childForm.allergies}
+                    onChange={(event) => setChildForm((current) => ({ ...current, allergies: event.target.value }))}
+                    className="mt-1 w-full resize-none rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
               </div>
-              <label className="text-sm text-foreground">
-                Gender
-                <select
-                  value={childForm.gender}
-                  onChange={(event) => setChildForm((current) => ({ ...current, gender: event.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
-                >
-                  <option value="Female">Female</option>
-                  <option value="Male">Male</option>
-                </select>
-              </label>
-              <label className="text-sm text-foreground">
-                Weight (kg)
-                <input
-                  required
-                  min="1"
-                  step="0.1"
-                  type="number"
-                  value={childForm.weight}
-                  onChange={(event) => setChildForm((current) => ({ ...current, weight: event.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
-                />
-              </label>
-              <label className="text-sm text-foreground sm:col-span-2">
-                Height (cm)
-                <input
-                  required
-                  min="30"
-                  step="0.1"
-                  type="number"
-                  value={childForm.height}
-                  onChange={(event) => setChildForm((current) => ({ ...current, height: event.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
-                />
-              </label>
-              <label className="text-sm text-foreground sm:col-span-2">
-                Mother's Name
-                <input
-                  required
-                  value={childForm.motherName}
-                  onChange={(event) => setChildForm((current) => ({ ...current, motherName: event.target.value }))}
-                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
-                />
-              </label>
-              <label className="text-sm text-foreground sm:col-span-2">
-                Allergies
-                <textarea
-                  rows={3}
-                  placeholder="Enter known allergies, or type None"
-                  value={childForm.allergies}
-                  onChange={(event) => setChildForm((current) => ({ ...current, allergies: event.target.value }))}
-                  className="mt-1 w-full resize-none rounded-lg border border-input bg-background px-3 py-2.5"
-                />
-              </label>
+            </div>
+
+            <div className="grid gap-3 border-t border-border pt-4">
+              <h3 className="text-sm font-semibold text-foreground">Parent Information</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-sm text-foreground">
+                  Mother&apos;s Name
+                  <input
+                    required
+                    value={childForm.motherName}
+                    onChange={(event) => setChildForm((current) => ({ ...current, motherName: event.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+                <label className="text-sm text-foreground">
+                  Father&apos;s Name
+                  <input
+                    required
+                    value={childForm.fatherName}
+                    onChange={(event) => setChildForm((current) => ({ ...current, fatherName: event.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+                <div className="rounded-lg border border-input bg-muted/60 px-3 py-2.5 text-sm text-foreground">
+                  <p className="text-xs text-muted-foreground">Parent/Guardian</p>
+                  <p className="mt-1 font-semibold">{currentUser?.name}</p>
+                </div>
+                <label className="text-sm text-foreground sm:col-span-2">
+                  Address
+                  <textarea
+                    required
+                    rows={3}
+                    value={childForm.address}
+                    onChange={(event) => setChildForm((current) => ({ ...current, address: event.target.value }))}
+                    className="mt-1 w-full resize-none rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setActiveDialog(null)}>

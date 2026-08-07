@@ -42,7 +42,7 @@ export default function UserChildProfile() {
                 <p className="text-sm font-medium text-muted-foreground">Child Profile</p>
                 <h1 className="mt-1 text-3xl font-bold leading-tight text-foreground">{child.name}</h1>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  {childAge} - {child.gender} - Parent/Guardian: {child.parentName}
+                  {childAge} - {child.gender}
                 </p>
                 <span className={`mt-3 inline-flex w-fit rounded-full px-3 py-1 text-xs font-medium ${statusClass[child.status]}`}>
                   {child.status}
@@ -102,8 +102,8 @@ export default function UserChildProfile() {
           <div className="section-enter stagger-2 rounded-xl border border-border/70 bg-card p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="font-semibold text-foreground">Mother Information</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Mother details linked to this child profile.</p>
+                <h2 className="font-semibold text-foreground">Parent Information</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Parent and guardian details linked to this profile.</p>
               </div>
               <UserRound className="h-5 w-5 text-muted-foreground" />
             </div>
@@ -113,8 +113,16 @@ export default function UserChildProfile() {
                 <dd className="font-medium text-foreground">{child.motherName || child.parentName}</dd>
               </div>
               <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
+                <dt className="text-muted-foreground">Father's Name</dt>
+                <dd className="font-medium text-foreground">{child.fatherName || "Not recorded"}</dd>
+              </div>
+              <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
                 <dt className="text-muted-foreground">Parent/Guardian</dt>
                 <dd className="font-medium text-foreground">{child.parentName}</dd>
+              </div>
+              <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
+                <dt className="text-muted-foreground">Address</dt>
+                <dd className="text-right font-medium text-foreground">{child.address || "Not recorded"}</dd>
               </div>
             </dl>
           </div>

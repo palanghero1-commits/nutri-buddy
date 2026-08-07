@@ -23,6 +23,8 @@ type AddChildInput = {
   height: number;
   parentName: string;
   motherName: string;
+  fatherName: string;
+  address: string;
   allergies?: string;
   createdByEmail?: string;
 };
@@ -254,6 +256,8 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
           middleName: child.middleName || nameParts.middleName,
           lastName: child.lastName || nameParts.lastName,
           motherName: child.motherName || child.parentName,
+          fatherName: child.fatherName || child.parentName,
+          address: child.address || "",
           allergies: child.allergies || "",
         };
 
@@ -311,6 +315,8 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
       avatar: createAvatar(name),
       parentName: input.parentName.trim(),
       motherName: input.motherName.trim(),
+      fatherName: input.fatherName.trim(),
+      address: input.address.trim(),
       allergies: input.allergies?.trim() || "",
       createdByEmail: input.createdByEmail,
       updatedAt: today,

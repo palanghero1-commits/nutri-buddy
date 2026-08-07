@@ -17,6 +17,8 @@ export interface Child {
   avatar: string;
   parentName: string;
   motherName: string;
+  fatherName: string;
+  address: string;
   allergies: string;
   createdByEmail?: string;
   updatedAt?: string;
@@ -103,6 +105,8 @@ export const seedChildren: Child[] = [
     avatar: "MS",
     parentName: "Ana Santos",
     motherName: "Ana Santos",
+    fatherName: "Not recorded",
+    address: "Barangay Tinampa-an, Cadiz City",
     allergies: "",
     updatedAt: "2026-03-20",
   },
@@ -123,6 +127,8 @@ export const seedChildren: Child[] = [
     avatar: "JC",
     parentName: "Rosa dela Cruz",
     motherName: "Rosa dela Cruz",
+    fatherName: "Not recorded",
+    address: "Barangay Tinampa-an, Cadiz City",
     allergies: "",
     updatedAt: "2026-03-20",
   },
@@ -142,6 +148,8 @@ export const seedChildren: Child[] = [
     avatar: "SR",
     parentName: "Elena Reyes",
     motherName: "Elena Reyes",
+    fatherName: "Not recorded",
+    address: "Barangay Tinampa-an, Cadiz City",
     allergies: "",
     updatedAt: "2026-03-19",
   },
@@ -161,6 +169,8 @@ export const seedChildren: Child[] = [
     avatar: "MG",
     parentName: "Pedro Garcia",
     motherName: "Mila Garcia",
+    fatherName: "Pedro Garcia",
+    address: "Barangay Tinampa-an, Cadiz City",
     allergies: "",
     updatedAt: "2026-03-18",
   },
@@ -180,6 +190,8 @@ export const seedChildren: Child[] = [
     avatar: "IC",
     parentName: "Lorna Cruz",
     motherName: "Lorna Cruz",
+    fatherName: "Not recorded",
+    address: "Barangay Tinampa-an, Cadiz City",
     allergies: "",
     updatedAt: "2026-03-18",
   },
@@ -199,6 +211,8 @@ export const seedChildren: Child[] = [
     avatar: "CM",
     parentName: "Margie Mendoza",
     motherName: "Margie Mendoza",
+    fatherName: "Not recorded",
+    address: "Barangay Tinampa-an, Cadiz City",
     allergies: "",
     updatedAt: "2026-03-17",
   },
