@@ -1,5 +1,17 @@
 export type ChildStatus = "Normal" | "Underweight" | "Overweight" | "Stunted";
 
+export const tinampaanAreas = [
+  { area: "Purok 1 - Riverside", bhwName: "BHW Demo", bhwEmail: "bhw@nutritrack.gov.ph" },
+  { area: "Purok 2 - Proper", bhwName: "Liza Montemayor", bhwEmail: "bhw.proper@nutritrack.gov.ph" },
+  { area: "Purok 3 - Hillside", bhwName: "Nora Villanueva", bhwEmail: "bhw.hillside@nutritrack.gov.ph" },
+] as const;
+
+export type TinampaanArea = (typeof tinampaanAreas)[number]["area"];
+
+export function getBhwForArea(area: string) {
+  return tinampaanAreas.find((assignment) => assignment.area === area) ?? tinampaanAreas[0];
+}
+
 export interface Child {
   id: string;
   firstName: string;
@@ -19,6 +31,9 @@ export interface Child {
   motherName: string;
   fatherName: string;
   address: string;
+  assignedArea: string;
+  assignedBhwName: string;
+  assignedBhwEmail: string;
   allergies: string;
   createdByEmail?: string;
   updatedAt?: string;
@@ -107,6 +122,9 @@ export const seedChildren: Child[] = [
     motherName: "Ana Santos",
     fatherName: "Not recorded",
     address: "Barangay Tinampa-an, Cadiz City",
+    assignedArea: "Purok 1 - Riverside",
+    assignedBhwName: "BHW Demo",
+    assignedBhwEmail: "bhw@nutritrack.gov.ph",
     allergies: "",
     updatedAt: "2026-03-20",
   },
@@ -129,6 +147,9 @@ export const seedChildren: Child[] = [
     motherName: "Rosa dela Cruz",
     fatherName: "Not recorded",
     address: "Barangay Tinampa-an, Cadiz City",
+    assignedArea: "Purok 1 - Riverside",
+    assignedBhwName: "BHW Demo",
+    assignedBhwEmail: "bhw@nutritrack.gov.ph",
     allergies: "",
     updatedAt: "2026-03-20",
   },
@@ -150,6 +171,9 @@ export const seedChildren: Child[] = [
     motherName: "Elena Reyes",
     fatherName: "Not recorded",
     address: "Barangay Tinampa-an, Cadiz City",
+    assignedArea: "Purok 2 - Proper",
+    assignedBhwName: "Liza Montemayor",
+    assignedBhwEmail: "bhw.proper@nutritrack.gov.ph",
     allergies: "",
     updatedAt: "2026-03-19",
   },
@@ -171,6 +195,9 @@ export const seedChildren: Child[] = [
     motherName: "Mila Garcia",
     fatherName: "Pedro Garcia",
     address: "Barangay Tinampa-an, Cadiz City",
+    assignedArea: "Purok 2 - Proper",
+    assignedBhwName: "Liza Montemayor",
+    assignedBhwEmail: "bhw.proper@nutritrack.gov.ph",
     allergies: "",
     updatedAt: "2026-03-18",
   },
@@ -192,6 +219,9 @@ export const seedChildren: Child[] = [
     motherName: "Lorna Cruz",
     fatherName: "Not recorded",
     address: "Barangay Tinampa-an, Cadiz City",
+    assignedArea: "Purok 3 - Hillside",
+    assignedBhwName: "Nora Villanueva",
+    assignedBhwEmail: "bhw.hillside@nutritrack.gov.ph",
     allergies: "",
     updatedAt: "2026-03-18",
   },
@@ -213,6 +243,9 @@ export const seedChildren: Child[] = [
     motherName: "Margie Mendoza",
     fatherName: "Not recorded",
     address: "Barangay Tinampa-an, Cadiz City",
+    assignedArea: "Purok 3 - Hillside",
+    assignedBhwName: "Nora Villanueva",
+    assignedBhwEmail: "bhw.hillside@nutritrack.gov.ph",
     allergies: "",
     updatedAt: "2026-03-17",
   },

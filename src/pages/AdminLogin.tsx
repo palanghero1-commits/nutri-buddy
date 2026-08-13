@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Navigate, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Leaf, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -24,9 +24,13 @@ export default function AdminLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
-  const { login, resetPassword } = useAuth();
+  const { login, resetPassword, staffRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  if (staffRole) {
+    return <Navigate to={staffRole === "bhw" ? "/bhw" : "/admin"} replace />;
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

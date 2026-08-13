@@ -1,6 +1,6 @@
-# Testing New Registration And Parent Information Changes
+# Testing New Registration And Guardian Information Changes
 
-Use this checklist to verify the latest changes for residency verification, parent information separation, and the parent address field.
+Use this checklist to verify the latest changes for residency verification, guardian information separation, and the guardian address field.
 
 ## 1. Build Check
 
@@ -75,7 +75,7 @@ Expected result:
 - API creates the user.
 - User data includes the registration session response.
 
-## 4. Add Child Parent Information
+## 4. Add Child Guardian Information
 
 Sign in as a user and open the user dashboard.
 
@@ -97,15 +97,15 @@ Verify the form sections:
   - Weight
   - Height
   - Allergies
-- `Parent Information` contains parent-related fields:
+- `Guardian Information` contains guardian-related fields:
   - Mother's Name
-  - Parent/Guardian
+  - Guardian
   - Address
 
 Important expected result:
 
-- `Address` appears only under `Parent Information`.
-- Mother and parent/guardian information are not mixed into the child information section.
+- `Address` appears only under `Guardian Information`.
+- Mother and guardian information are not mixed into the child information section.
 
 Submit a child profile with an address.
 
@@ -121,10 +121,10 @@ Open a saved child profile from the user sidebar.
 Expected result:
 
 - The top child summary shows only child details, such as age and gender.
-- Parent details appear in a separate `Parent Information` section.
-- The `Parent Information` section includes:
+- Guardian details appear in a separate `Guardian Information` section.
+- The `Guardian Information` section includes:
   - Mother's Name
-  - Parent/Guardian
+  - Guardian
   - Address
 
 ## 6. Admin Children List
@@ -138,10 +138,10 @@ Sign in as admin and open:
 Expected result:
 
 - Each child card keeps child health details separate.
-- Each card has a separate `Parent Information` subsection.
+- Each card has a separate `Guardian Information` subsection.
 - The subsection includes:
   - Mother
-  - Parent/Guardian
+  - Guardian
   - Address
 
 ## 7. Reports Page
@@ -154,11 +154,11 @@ Sign in as admin and open:
 
 Expected result:
 
-- The children summary table includes parent-related columns:
-  - Parent
+- The children summary table includes guardian-related columns:
+  - Guardian
   - Mother
   - Address
-- Address should appear beside parent information, not inside the child's basic details.
+- Address should appear beside guardian information, not inside the child's basic details.
 
 ## 8. Database Schema Check
 

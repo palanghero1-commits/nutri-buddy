@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useNutriData } from "@/hooks/useNutriData";
-import { formatChildAge } from "@/lib/mockData";
+import { formatChildAge, tinampaanAreas } from "@/lib/mockData";
 
 const today = new Date().toISOString().slice(0, 10);
 const currentMonth = new Date().toISOString().slice(0, 7);
@@ -40,6 +40,7 @@ export default function UserPortal() {
     motherName: currentUser?.name || "",
     fatherName: "",
     address: "",
+    assignedArea: tinampaanAreas[0].area,
     allergies: "",
   });
   const [mealForm, setMealForm] = useState({
@@ -94,6 +95,7 @@ export default function UserPortal() {
       motherName: childForm.motherName,
       fatherName: childForm.fatherName,
       address: childForm.address,
+      assignedArea: childForm.assignedArea,
       allergies: childForm.allergies,
       createdByEmail: currentUser.email,
     });
@@ -109,6 +111,7 @@ export default function UserPortal() {
       motherName: currentUser.name,
       fatherName: "",
       address: "",
+      assignedArea: tinampaanAreas[0].area,
       allergies: "",
     });
     setMessage("Child profile saved. The admin dashboard now uses this record.");
@@ -393,7 +396,7 @@ export default function UserPortal() {
             </div>
 
             <div className="grid gap-3 border-t border-border pt-4">
-              <h3 className="text-sm font-semibold text-foreground">Parent Information</h3>
+              <h3 className="text-sm font-semibold text-foreground">Guardian Information</h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="text-sm text-foreground">
                   Mother&apos;s Name
@@ -414,7 +417,7 @@ export default function UserPortal() {
                   />
                 </label>
                 <div className="rounded-lg border border-input bg-muted/60 px-3 py-2.5 text-sm text-foreground">
-                  <p className="text-xs text-muted-foreground">Parent/Guardian</p>
+                  <p className="text-xs text-muted-foreground">Guardian</p>
                   <p className="mt-1 font-semibold">{currentUser?.name}</p>
                 </div>
                 <label className="text-sm text-foreground sm:col-span-2">
@@ -426,6 +429,21 @@ export default function UserPortal() {
                     onChange={(event) => setChildForm((current) => ({ ...current, address: event.target.value }))}
                     className="mt-1 w-full resize-none rounded-lg border border-input bg-background px-3 py-2.5"
                   />
+                </label>
+                <label className="text-sm text-foreground sm:col-span-2">
+                  Area in Barangay Tinampa-an
+                  <select
+                    required
+                    value={childForm.assignedArea}
+                    onChange={(event) => setChildForm((current) => ({ ...current, assignedArea: event.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  >
+                    {tinampaanAreas.map((assignment) => (
+                      <option key={assignment.area} value={assignment.area}>
+                        {assignment.area} - {assignment.bhwName}
+                      </option>
+                    ))}
+                  </select>
                 </label>
               </div>
             </div>

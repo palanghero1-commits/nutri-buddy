@@ -8,6 +8,7 @@ import {
   TrendingUp,
   Bell,
   FileText,
+  UserCog,
   ChevronLeft,
   ChevronRight,
   Leaf,
@@ -15,12 +16,14 @@ import {
 } from "lucide-react";
 
 export const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
-  { icon: Users, label: "Children", path: "/admin/children" },
-  { icon: UtensilsCrossed, label: "Meal Tracker", path: "/admin/meals" },
-  { icon: TrendingUp, label: "Growth Monitor", path: "/admin/growth" },
-  { icon: Bell, label: "Alerts", path: "/admin/alerts" },
-  { icon: FileText, label: "Reports", path: "/admin/reports" },
+  { icon: LayoutDashboard, label: "Dashboard", path: "", roles: ["admin", "bhw"] },
+  { icon: UserCog, label: "Profile", path: "/profile", roles: ["bhw"] },
+  { icon: Users, label: "Children", path: "/children", roles: ["admin", "bhw"] },
+  { icon: UtensilsCrossed, label: "Meal Tracker", path: "/meals", roles: ["admin", "bhw"] },
+  { icon: TrendingUp, label: "Growth Monitor", path: "/growth", roles: ["admin", "bhw"] },
+  { icon: Bell, label: "Alerts", path: "/alerts", roles: ["admin", "bhw"] },
+  { icon: FileText, label: "Reports", path: "/reports", roles: ["admin", "bhw"] },
+  { icon: UserCog, label: "BHW Management", path: "/bhws", roles: ["admin"] },
 ];
 
 interface SidebarContentProps {
@@ -38,7 +41,9 @@ function SidebarContent({
 }: SidebarContentProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, staffRole } = useAuth();
+  const portalLabel = staffRole === "bhw" ? "BHW Portal" : "Admin Portal";
+  const basePath = staffRole === "bhw" ? "/bhw" : "/admin";
 
   const handleLogout = () => {
     logout();
@@ -53,17 +58,18 @@ function SidebarContent({
           <Leaf className="h-5 w-5 text-primary-foreground" />
         </div>
         {!collapsed && (
-          <span className="text-lg font-bold tracking-tight text-sidebar-foreground">Nutri-Track</span>
+          <span className="text-lg font-bold tracking-tight text-sidebar-foreground">{portalLabel}</span>
         )}
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-4">
-        {navItems.map((item) => {
-          const active = location.pathname === item.path;
+        {navItems.filter((item) => staffRole && item.roles.includes(staffRole)).map((item) => {
+          const itemPath = `${basePath}${item.path}`;
+          const active = location.pathname === itemPath;
           return (
             <Link
-              key={item.path}
-              to={item.path}
+              key={itemPath}
+              to={itemPath}
               onClick={onNavigate}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
                 active

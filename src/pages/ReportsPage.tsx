@@ -69,7 +69,9 @@ export default function ReportsPage() {
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">Height</th>
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">BMI</th>
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">Status</th>
-                <th className="text-left py-3 px-2 font-medium text-muted-foreground">Parent</th>
+                <th className="text-left py-3 px-2 font-medium text-muted-foreground">Guardian</th>
+                <th className="text-left py-3 px-2 font-medium text-muted-foreground">Assigned Area</th>
+                <th className="text-left py-3 px-2 font-medium text-muted-foreground">Assigned BHW</th>
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">Mother</th>
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">Father</th>
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">Address</th>
@@ -95,6 +97,8 @@ export default function ReportsPage() {
                     </span>
                   </td>
                   <td className="py-3 px-2 text-muted-foreground">{child.parentName}</td>
+                  <td className="py-3 px-2 text-muted-foreground">{child.assignedArea || "Not assigned"}</td>
+                  <td className="py-3 px-2 text-muted-foreground">{child.assignedBhwName || "Not assigned"}</td>
                   <td className="py-3 px-2 text-muted-foreground">{child.motherName || child.parentName}</td>
                   <td className="py-3 px-2 text-muted-foreground">{child.fatherName || "Not recorded"}</td>
                   <td className="py-3 px-2 text-muted-foreground">{child.address || "Not recorded"}</td>

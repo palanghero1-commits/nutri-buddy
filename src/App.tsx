@@ -13,6 +13,7 @@ import AdminLogin from "@/pages/AdminLogin";
 import UserLogin from "@/pages/UserLogin";
 import UserRegister from "@/pages/UserRegister";
 import UserPortal from "@/pages/UserPortal";
+import UserProfile from "@/pages/UserProfile";
 import UserChildProfile from "@/pages/UserChildProfile";
 import UserMealsPage from "@/pages/UserMealsPage";
 import UserGrowthPage from "@/pages/UserGrowthPage";
@@ -22,6 +23,8 @@ import MealTracker from "@/pages/MealTracker";
 import GrowthMonitor from "@/pages/GrowthMonitor";
 import AlertsPage from "@/pages/AlertsPage";
 import ReportsPage from "@/pages/ReportsPage";
+import BhwManagement from "@/pages/BhwManagement";
+import BhwProfile from "@/pages/BhwProfile";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,7 +51,19 @@ const App = () => (
               <Route path="/admin/growth" element={<AdminRoute><GrowthMonitor /></AdminRoute>} />
               <Route path="/admin/alerts" element={<AdminRoute><AlertsPage /></AdminRoute>} />
               <Route path="/admin/reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
+              <Route path="/admin/bhws" element={<AdminRoute><BhwManagement /></AdminRoute>} />
+
+              {/* BHW routes */}
+              <Route path="/bhw" element={<AdminRoute allowedRoles={["bhw"]}><Dashboard /></AdminRoute>} />
+              <Route path="/bhw/profile" element={<AdminRoute allowedRoles={["bhw"]}><BhwProfile /></AdminRoute>} />
+              <Route path="/bhw/children" element={<AdminRoute allowedRoles={["bhw"]}><ChildrenList /></AdminRoute>} />
+              <Route path="/bhw/meals" element={<AdminRoute allowedRoles={["bhw"]}><MealTracker /></AdminRoute>} />
+              <Route path="/bhw/growth" element={<AdminRoute allowedRoles={["bhw"]}><GrowthMonitor /></AdminRoute>} />
+              <Route path="/bhw/alerts" element={<AdminRoute allowedRoles={["bhw"]}><AlertsPage /></AdminRoute>} />
+              <Route path="/bhw/reports" element={<AdminRoute allowedRoles={["bhw"]}><ReportsPage /></AdminRoute>} />
+
               <Route path="/user" element={<UserRoute><UserLayout><UserPortal /></UserLayout></UserRoute>} />
+              <Route path="/user/profile" element={<UserRoute><UserLayout><UserProfile /></UserLayout></UserRoute>} />
               <Route path="/user/meals" element={<UserRoute><UserLayout><UserMealsPage /></UserLayout></UserRoute>} />
               <Route path="/user/growth" element={<UserRoute><UserLayout><UserGrowthPage /></UserLayout></UserRoute>} />
               <Route path="/user/children/:childId" element={<UserRoute><UserLayout><UserChildProfile /></UserLayout></UserRoute>} />

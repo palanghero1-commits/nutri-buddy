@@ -2,10 +2,13 @@ import { Users, Utensils, AlertTriangle, TrendingUp, Heart, Scale, Ruler, Activi
 import { Link } from "react-router-dom";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useNutriData } from "@/hooks/useNutriData";
+import { useAuth } from "@/hooks/useAuth";
 import { formatChildAge } from "@/lib/mockData";
 
 export default function Dashboard() {
   const { dashboardStats, children, alerts } = useNutriData();
+  const { staffRole, staffUser } = useAuth();
+  const basePath = staffRole === "bhw" ? "/bhw" : "/admin";
   const unreadAlerts = alerts.filter((a) => !a.read);
   const statusData = [
     { name: "Normal", value: dashboardStats.normalCount, color: "#192853" },
@@ -19,6 +22,11 @@ export default function Dashboard() {
       <div className="section-enter">
         <h1 className="text-2xl font-bold text-foreground leading-tight">Dashboard</h1>
         <p className="text-muted-foreground mt-1">Barangay Tinampa-an Health Center, Cadiz City - Children's Health Overview</p>
+        {staffRole === "bhw" && staffUser?.assignedArea && (
+          <p className="mt-2 inline-flex rounded-lg bg-muted px-3 py-1 text-sm font-medium text-foreground">
+            Assigned Area: {staffUser.assignedArea}
+          </p>
+        )}
       </div>
 
       {/* Stat cards */}
@@ -73,7 +81,7 @@ export default function Dashboard() {
         <div className="stat-card section-enter stagger-4 lg:col-span-1">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-foreground">Recent Children</h2>
-            <Link to="/admin/children" className="text-xs text-primary hover:underline">View all</Link>
+            <Link to={`${basePath}/children`} className="text-xs text-primary hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
             {children.slice(0, 4).map((child) => (
@@ -86,6 +94,7 @@ export default function Dashboard() {
                   <p className="text-xs text-muted-foreground">
                     {child.ageDisplay || formatChildAge(child.birthDate) || `${child.age} years old`} - {child.weight} kg
                   </p>
+                  <p className="text-xs text-muted-foreground">{child.assignedArea}</p>
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   child.status === "Normal" ? "bg-sage text-sage-deep" :
@@ -104,7 +113,7 @@ export default function Dashboard() {
         <div className="stat-card section-enter stagger-5 lg:col-span-1">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-foreground">Recent Alerts</h2>
-            <Link to="/admin/alerts" className="text-xs text-primary hover:underline">View all</Link>
+            <Link to={`${basePath}/alerts`} className="text-xs text-primary hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
             {(unreadAlerts.length > 0 ? unreadAlerts : alerts).slice(0, 4).map((alert) => (

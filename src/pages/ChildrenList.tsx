@@ -15,7 +15,7 @@ export default function ChildrenList() {
       <div className="section-enter flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Children Profiles</h1>
-          <p className="text-muted-foreground mt-1">Manage and monitor registered children</p>
+          <p className="text-muted-foreground mt-1">Manage and monitor registered children by assigned area</p>
         </div>
         <div className="w-full rounded-lg bg-muted px-4 py-2 text-sm text-muted-foreground sm:w-auto">
           User submissions sync here automatically
@@ -82,12 +82,14 @@ export default function ChildrenList() {
             </div>
 
             <div className="mt-3 border-t border-border pt-3">
-              <p className="text-xs font-semibold text-foreground">Parent Information</p>
+              <p className="text-xs font-semibold text-foreground">Guardian Information</p>
               <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
                 <p className="break-words">Mother: {child.motherName || child.parentName}</p>
                 <p className="break-words">Father: {child.fatherName || "Not recorded"}</p>
-                <p className="break-words">Parent/Guardian: {child.parentName}</p>
+                <p className="break-words">Guardian: {child.parentName}</p>
                 <p className="break-words">Address: {child.address || "Not recorded"}</p>
+                <p className="break-words">Assigned Area: {child.assignedArea || "Not assigned"}</p>
+                <p className="break-words">Assigned BHW: {child.assignedBhwName || "Not assigned"}</p>
               </div>
             </div>
           </div>

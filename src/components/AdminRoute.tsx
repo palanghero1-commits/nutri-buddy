@@ -3,11 +3,22 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import AppLayout from "./AppLayout";
 
-export default function AdminRoute({ children }: { children: ReactNode }) {
-  const { isAdmin } = useAuth();
+type StaffRole = "admin" | "bhw";
 
-  if (!isAdmin) {
-    return <Navigate to="/admin/login" replace />;
+type AdminRouteProps = {
+  children: ReactNode;
+  allowedRoles?: StaffRole[];
+};
+
+export default function AdminRoute({ children, allowedRoles = ["admin"] }: AdminRouteProps) {
+  const { staffRole } = useAuth();
+
+  if (!staffRole) {
+    return <Navigate to={allowedRoles.includes("admin") ? "/admin/login" : "/user/login"} replace />;
+  }
+
+  if (!allowedRoles.includes(staffRole)) {
+    return <Navigate to={staffRole === "bhw" ? "/bhw" : "/admin"} replace />;
   }
 
   return <AppLayout>{children}</AppLayout>;

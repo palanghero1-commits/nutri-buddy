@@ -21,7 +21,7 @@ The goal of the project is to provide a digital system for:
   Barangay health workers or authorized staff who monitor records
 
 - Regular users
-  Parents or guardians who submit child-related records
+  Guardians who submit child-related records
 
 ## 4. Technology Stack
 
@@ -169,7 +169,7 @@ Allows the administrator to access the protected admin pages using demo credenti
 
 ### User Login and Register
 
-Allows parents or guardians to access the user portal.
+Allows guardians to access the user portal.
 
 ### User Portal
 

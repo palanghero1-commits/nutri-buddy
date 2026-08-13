@@ -3,9 +3,12 @@ import { Menu } from "lucide-react";
 import AppSidebar, { MobileSidebarContent } from "./AppSidebar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const isMobile = useIsMobile();
+  const { staffRole } = useAuth();
+  const portalLabel = staffRole === "bhw" ? "BHW Portal" : "Admin Portal";
 
   return (
     <div className="min-h-screen bg-background">
@@ -15,7 +18,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
             <div>
               <p className="text-base font-bold text-foreground">Nutri-Track</p>
-              <p className="text-xs text-muted-foreground">Admin Portal</p>
+              <p className="text-xs text-muted-foreground">{portalLabel}</p>
             </div>
             <Sheet>
               <SheetTrigger asChild>

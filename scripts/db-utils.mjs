@@ -27,7 +27,8 @@ export const schemaStatements = [
     name VARCHAR(150) NOT NULL,
     email VARCHAR(190) NOT NULL UNIQUE,
     password_hash CHAR(64) NOT NULL,
-    role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
+    role ENUM('admin', 'bhw', 'user') NOT NULL DEFAULT 'user',
+    assigned_area VARCHAR(120) NULL,
     resident_address TEXT NULL,
     contact_number VARCHAR(40) NULL,
     residency_confirmed TINYINT(1) NOT NULL DEFAULT 0,
@@ -53,6 +54,9 @@ export const schemaStatements = [
     mother_name VARCHAR(150) NOT NULL,
     father_name VARCHAR(150) NOT NULL,
     parent_address TEXT NULL,
+    assigned_area VARCHAR(120) NULL,
+    assigned_bhw_name VARCHAR(150) NULL,
+    assigned_bhw_email VARCHAR(190) NULL,
     allergies TEXT NULL,
     created_by_email VARCHAR(190) NULL,
     updated_at VARCHAR(10) NULL,
@@ -135,6 +139,7 @@ export async function ensureSchema(connection) {
 
   await ensureChildrenColumns(connection);
   await ensureUserColumns(connection);
+  await ensureUserRoleEnum(connection);
 }
 
 export async function ensureDatabaseSchema(connectionOrPool) {
@@ -169,6 +174,21 @@ async function ensureChildrenColumns(connection) {
   if (!existingColumns.has("allergies")) {
     await connection.query("ALTER TABLE children ADD COLUMN allergies TEXT NULL AFTER parent_address");
   }
+
+  if (!existingColumns.has("assigned_area")) {
+    await connection.query("ALTER TABLE children ADD COLUMN assigned_area VARCHAR(120) NULL AFTER parent_address");
+    await connection.query("UPDATE children SET assigned_area = 'Purok 1 - Riverside' WHERE assigned_area IS NULL OR assigned_area = ''");
+  }
+
+  if (!existingColumns.has("assigned_bhw_name")) {
+    await connection.query("ALTER TABLE children ADD COLUMN assigned_bhw_name VARCHAR(150) NULL AFTER assigned_area");
+    await connection.query("UPDATE children SET assigned_bhw_name = 'BHW Demo' WHERE assigned_bhw_name IS NULL OR assigned_bhw_name = ''");
+  }
+
+  if (!existingColumns.has("assigned_bhw_email")) {
+    await connection.query("ALTER TABLE children ADD COLUMN assigned_bhw_email VARCHAR(190) NULL AFTER assigned_bhw_name");
+    await connection.query("UPDATE children SET assigned_bhw_email = 'bhw@nutritrack.gov.ph' WHERE assigned_bhw_email IS NULL OR assigned_bhw_email = ''");
+  }
 }
 
 async function ensureUserColumns(connection) {
@@ -184,6 +204,10 @@ async function ensureUserColumns(connection) {
     await connection.query("ALTER TABLE users ADD COLUMN resident_address TEXT NULL AFTER role");
   }
 
+  if (!existingColumns.has("assigned_area")) {
+    await connection.query("ALTER TABLE users ADD COLUMN assigned_area VARCHAR(120) NULL AFTER role");
+  }
+
   if (!existingColumns.has("contact_number")) {
     await connection.query("ALTER TABLE users ADD COLUMN contact_number VARCHAR(40) NULL AFTER resident_address");
   }
@@ -193,23 +217,54 @@ async function ensureUserColumns(connection) {
   }
 }
 
+async function ensureUserRoleEnum(connection) {
+  const [columns] = await connection.query(
+    `SELECT column_type AS columnType
+     FROM information_schema.columns
+     WHERE table_schema = ? AND table_name = 'users' AND column_name = 'role'`,
+    [dbConfig.database],
+  );
+
+  if (!columns[0]?.columnType?.includes("'bhw'")) {
+    await connection.query("ALTER TABLE users MODIFY role ENUM('admin', 'bhw', 'user') NOT NULL DEFAULT 'user'");
+  }
+}
+
 export async function seedDefaultUsers(connectionOrPool) {
   await connectionOrPool.query(
-    `INSERT INTO users (name, email, password_hash, role)
-     VALUES (?, ?, ?, ?), (?, ?, ?, ?)
+    `INSERT INTO users (name, email, password_hash, role, assigned_area)
+     VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?), (?, ?, ?, ?, ?), (?, ?, ?, ?, ?), (?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE
        name = VALUES(name),
        password_hash = VALUES(password_hash),
-       role = VALUES(role)`,
+       role = VALUES(role),
+       assigned_area = VALUES(assigned_area)`,
     [
       "System Admin",
       "admin@nutritrack.gov.ph",
       hashPassword("admin123"),
       "admin",
+      null,
+      "BHW Demo",
+      "bhw@nutritrack.gov.ph",
+      hashPassword("bhw12345"),
+      "bhw",
+      "Purok 1 - Riverside",
+      "Liza Montemayor",
+      "bhw.proper@nutritrack.gov.ph",
+      hashPassword("bhwproper123"),
+      "bhw",
+      "Purok 2 - Proper",
+      "Nora Villanueva",
+      "bhw.hillside@nutritrack.gov.ph",
+      hashPassword("bhwhillside123"),
+      "bhw",
+      "Purok 3 - Hillside",
       "Maria Santos",
       "user@nutritrack.app",
       hashPassword("user12345"),
       "user",
+      null,
     ],
   );
 }

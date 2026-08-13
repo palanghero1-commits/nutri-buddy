@@ -154,7 +154,7 @@ export default function UserRegister() {
                   <div>
                     <p className="text-sm font-semibold text-foreground">Tinampa-an Resident Verification</p>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                      This portal is for parents and guardians living in Barangay Tinampa-an, Cadiz City.
+                      This portal is for guardians living in Barangay Tinampa-an, Cadiz City.
                     </p>
                   </div>
                 </div>

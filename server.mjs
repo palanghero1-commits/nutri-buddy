@@ -25,12 +25,12 @@ const contentTypes = {
 };
 
 const seedChildren = [
-  ["1", "Maria", null, "Santos", "Maria Santos", "2020-07-01", 5, "5 years & 11 months", "Female", 17.2, 108, 14.7, "Normal", "MS", "Ana Santos", "Ana Santos", "Not recorded", "Barangay Tinampa-an, Cadiz City", "", null, "2026-03-20"],
-  ["2", "Juan", "dela", "Cruz", "Juan dela Cruz", "2022-07-01", 3, "3 years & 11 months", "Male", 11.8, 92, 13.9, "Underweight", "JC", "Rosa dela Cruz", "Rosa dela Cruz", "Not recorded", "Barangay Tinampa-an, Cadiz City", "", null, "2026-03-20"],
-  ["3", "Sofia", null, "Reyes", "Sofia Reyes", "2018-07-01", 7, "7 years & 11 months", "Female", 28.5, 125, 18.2, "Overweight", "SR", "Elena Reyes", "Elena Reyes", "Not recorded", "Barangay Tinampa-an, Cadiz City", "", null, "2026-03-19"],
-  ["4", "Miguel", null, "Garcia", "Miguel Garcia", "2021-07-01", 4, "4 years & 11 months", "Male", 14.1, 96, 15.3, "Normal", "MG", "Pedro Garcia", "Mila Garcia", "Pedro Garcia", "Barangay Tinampa-an, Cadiz City", "", null, "2026-03-18"],
-  ["5", "Isabella", null, "Cruz", "Isabella Cruz", "2019-07-01", 6, "6 years & 11 months", "Female", 16.5, 105, 15, "Stunted", "IC", "Lorna Cruz", "Lorna Cruz", "Not recorded", "Barangay Tinampa-an, Cadiz City", "", null, "2026-03-18"],
-  ["6", "Carlos", null, "Mendoza", "Carlos Mendoza", "2023-07-01", 2, "2 years & 11 months", "Male", 10.2, 82, 15.2, "Normal", "CM", "Margie Mendoza", "Margie Mendoza", "Not recorded", "Barangay Tinampa-an, Cadiz City", "", null, "2026-03-17"],
+  ["1", "Maria", null, "Santos", "Maria Santos", "2020-07-01", 5, "5 years & 11 months", "Female", 17.2, 108, 14.7, "Normal", "MS", "Ana Santos", "Ana Santos", "Not recorded", "Barangay Tinampa-an, Cadiz City", "Purok 1 - Riverside", "BHW Demo", "bhw@nutritrack.gov.ph", "", null, "2026-03-20"],
+  ["2", "Juan", "dela", "Cruz", "Juan dela Cruz", "2022-07-01", 3, "3 years & 11 months", "Male", 11.8, 92, 13.9, "Underweight", "JC", "Rosa dela Cruz", "Rosa dela Cruz", "Not recorded", "Barangay Tinampa-an, Cadiz City", "Purok 1 - Riverside", "BHW Demo", "bhw@nutritrack.gov.ph", "", null, "2026-03-20"],
+  ["3", "Sofia", null, "Reyes", "Sofia Reyes", "2018-07-01", 7, "7 years & 11 months", "Female", 28.5, 125, 18.2, "Overweight", "SR", "Elena Reyes", "Elena Reyes", "Not recorded", "Barangay Tinampa-an, Cadiz City", "Purok 2 - Proper", "Liza Montemayor", "bhw.proper@nutritrack.gov.ph", "", null, "2026-03-19"],
+  ["4", "Miguel", null, "Garcia", "Miguel Garcia", "2021-07-01", 4, "4 years & 11 months", "Male", 14.1, 96, 15.3, "Normal", "MG", "Pedro Garcia", "Mila Garcia", "Pedro Garcia", "Barangay Tinampa-an, Cadiz City", "Purok 2 - Proper", "Liza Montemayor", "bhw.proper@nutritrack.gov.ph", "", null, "2026-03-18"],
+  ["5", "Isabella", null, "Cruz", "Isabella Cruz", "2019-07-01", 6, "6 years & 11 months", "Female", 16.5, 105, 15, "Stunted", "IC", "Lorna Cruz", "Lorna Cruz", "Not recorded", "Barangay Tinampa-an, Cadiz City", "Purok 3 - Hillside", "Nora Villanueva", "bhw.hillside@nutritrack.gov.ph", "", null, "2026-03-18"],
+  ["6", "Carlos", null, "Mendoza", "Carlos Mendoza", "2023-07-01", 2, "2 years & 11 months", "Male", 10.2, 82, 15.2, "Normal", "CM", "Margie Mendoza", "Margie Mendoza", "Not recorded", "Barangay Tinampa-an, Cadiz City", "Purok 3 - Hillside", "Nora Villanueva", "bhw.hillside@nutritrack.gov.ph", "", null, "2026-03-17"],
 ];
 
 const seedMeals = [
@@ -57,8 +57,11 @@ let usingMemoryStore = false;
 
 const memoryStore = {
   users: [
-    { name: "System Admin", email: "admin@nutritrack.gov.ph", passwordHash: hashPassword("admin123"), role: "admin" },
-    { name: "Maria Santos", email: "user@nutritrack.app", passwordHash: hashPassword("user12345"), role: "user" },
+    { name: "System Admin", email: "admin@nutritrack.gov.ph", passwordHash: hashPassword("admin123"), role: "admin", residentAddress: "", contactNumber: "", residencyConfirmed: false },
+    { name: "BHW Demo", email: "bhw@nutritrack.gov.ph", passwordHash: hashPassword("bhw12345"), role: "bhw", assignedArea: "Purok 1 - Riverside", residentAddress: "", contactNumber: "", residencyConfirmed: false },
+    { name: "Liza Montemayor", email: "bhw.proper@nutritrack.gov.ph", passwordHash: hashPassword("bhwproper123"), role: "bhw", assignedArea: "Purok 2 - Proper", residentAddress: "", contactNumber: "", residencyConfirmed: false },
+    { name: "Nora Villanueva", email: "bhw.hillside@nutritrack.gov.ph", passwordHash: hashPassword("bhwhillside123"), role: "bhw", assignedArea: "Purok 3 - Hillside", residentAddress: "", contactNumber: "", residencyConfirmed: false },
+    { name: "Maria Santos", email: "user@nutritrack.app", passwordHash: hashPassword("user12345"), role: "user", residentAddress: "Barangay Tinampa-an, Cadiz City", contactNumber: "", residencyConfirmed: true },
   ],
   children: seedChildren.map((child) => ({
     id: child[0],
@@ -79,9 +82,12 @@ const memoryStore = {
     motherName: child[15],
     fatherName: child[16],
     address: child[17] || "",
-    allergies: child[18] || "",
-    createdByEmail: child[19] || undefined,
-    updatedAt: child[20] || undefined,
+    assignedArea: child[18] || "Purok 1 - Riverside",
+    assignedBhwName: child[19] || "BHW Demo",
+    assignedBhwEmail: child[20] || "bhw@nutritrack.gov.ph",
+    allergies: child[21] || "",
+    createdByEmail: child[22] || undefined,
+    updatedAt: child[23] || undefined,
   })),
   mealEntries: seedMeals.map((meal) => ({
     id: meal[0],
@@ -134,7 +140,7 @@ async function seedDatabase() {
     await pool.query(
       `INSERT INTO children (
         id, first_name, middle_name, last_name, name, birth_date, age, age_display, gender,
-        weight, height, bmi, status, avatar, parent_name, mother_name, father_name, parent_address, allergies, created_by_email, updated_at
+        weight, height, bmi, status, avatar, parent_name, mother_name, father_name, parent_address, assigned_area, assigned_bhw_name, assigned_bhw_email, allergies, created_by_email, updated_at
       ) VALUES ?`,
       [seedChildren],
     );
@@ -180,6 +186,9 @@ function toChild(row) {
     motherName: row.mother_name || row.parent_name,
     fatherName: row.father_name || row.parent_name,
     address: row.parent_address || "",
+    assignedArea: row.assigned_area || "Purok 1 - Riverside",
+    assignedBhwName: row.assigned_bhw_name || "BHW Demo",
+    assignedBhwEmail: row.assigned_bhw_email || "bhw@nutritrack.gov.ph",
     allergies: row.allergies || "",
     createdByEmail: row.created_by_email || undefined,
     updatedAt: row.updated_at || undefined,
@@ -257,6 +266,27 @@ function findMemoryUser(email, password, role) {
   return memoryStore.users.find((user) => user.email === normalizedEmail && user.passwordHash === passwordHash && user.role === role);
 }
 
+function toPublicUser(user) {
+  return {
+    name: user.name,
+    email: user.email,
+    assignedArea: user.assignedArea ?? user.assigned_area ?? "",
+    residentAddress: user.residentAddress ?? user.resident_address ?? "",
+    contactNumber: user.contactNumber ?? user.contact_number ?? "",
+    residencyConfirmed: Boolean(user.residencyConfirmed ?? user.residency_confirmed),
+  };
+}
+
+function toBhwUser(user) {
+  return {
+    id: user.id ?? user.email,
+    name: user.name,
+    email: user.email,
+    assignedArea: user.assignedArea ?? user.assigned_area ?? "",
+    contactNumber: user.contactNumber ?? user.contact_number ?? "",
+  };
+}
+
 async function handleApi(request, response, pathname) {
   if (request.method === "GET" && pathname === "/api/health") {
     if (!usingMemoryStore) {
@@ -271,19 +301,183 @@ async function handleApi(request, response, pathname) {
     return true;
   }
 
+  if (request.method === "GET" && pathname === "/api/bhws") {
+    if (usingMemoryStore) {
+      sendJson(response, 200, {
+        bhws: memoryStore.users.filter((user) => user.role === "bhw").map(toBhwUser),
+      });
+      return true;
+    }
+
+    const [rows] = await pool.query("SELECT id, name, email, assigned_area, contact_number FROM users WHERE role = 'bhw' ORDER BY assigned_area ASC, name ASC");
+    sendJson(response, 200, { bhws: rows.map(toBhwUser) });
+    return true;
+  }
+
+  if (request.method === "POST" && pathname === "/api/bhws") {
+    const { name, email, password, assignedArea, contactNumber } = await readRequestBody(request);
+    const normalizedName = String(name || "").trim();
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedAssignedArea = String(assignedArea || "").trim();
+    const normalizedContactNumber = String(contactNumber || "").trim();
+
+    if (!normalizedName || !normalizedEmail || !String(password || "").trim() || !normalizedAssignedArea) {
+      sendJson(response, 400, { message: "BHW name, email, password, and assigned area are required." });
+      return true;
+    }
+
+    const bhw = {
+      name: normalizedName,
+      email: normalizedEmail,
+      passwordHash: hashPassword(String(password)),
+      role: "bhw",
+      assignedArea: normalizedAssignedArea,
+      residentAddress: "",
+      contactNumber: normalizedContactNumber,
+      residencyConfirmed: false,
+    };
+
+    if (usingMemoryStore) {
+      if (memoryStore.users.some((user) => user.email === normalizedEmail)) {
+        sendJson(response, 409, { message: "An account with this email already exists." });
+        return true;
+      }
+
+      memoryStore.users.push(bhw);
+      sendJson(response, 201, { bhw: toBhwUser(bhw) });
+      return true;
+    }
+
+    try {
+      await pool.query(
+        "INSERT INTO users (name, email, password_hash, role, assigned_area, contact_number, residency_confirmed) VALUES (?, ?, ?, 'bhw', ?, ?, 0)",
+        [normalizedName, normalizedEmail, hashPassword(String(password)), normalizedAssignedArea, normalizedContactNumber || null],
+      );
+      const [rows] = await pool.query("SELECT id, name, email, assigned_area, contact_number FROM users WHERE email = ? AND role = 'bhw' LIMIT 1", [normalizedEmail]);
+      sendJson(response, 201, { bhw: toBhwUser(rows[0]) });
+    } catch (error) {
+      if (error.code === "ER_DUP_ENTRY") {
+        sendJson(response, 409, { message: "An account with this email already exists." });
+        return true;
+      }
+      throw error;
+    }
+    return true;
+  }
+
+  const bhwMatch = pathname.match(/^\/api\/bhws\/([^/]+)$/);
+  if (bhwMatch && request.method === "PUT") {
+    const emailKey = decodeURIComponent(bhwMatch[1]).trim().toLowerCase();
+    const { name, email, password, assignedArea, contactNumber } = await readRequestBody(request);
+    const normalizedName = String(name || "").trim();
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedAssignedArea = String(assignedArea || "").trim();
+    const normalizedContactNumber = String(contactNumber || "").trim();
+
+    if (!emailKey || !normalizedName || !normalizedEmail || !normalizedAssignedArea) {
+      sendJson(response, 400, { message: "BHW name, email, and assigned area are required." });
+      return true;
+    }
+
+    if (usingMemoryStore) {
+      const bhw = memoryStore.users.find((user) => user.email === emailKey && user.role === "bhw");
+      if (!bhw) {
+        sendJson(response, 404, { message: "BHW account not found." });
+        return true;
+      }
+      if (normalizedEmail !== emailKey && memoryStore.users.some((user) => user.email === normalizedEmail)) {
+        sendJson(response, 409, { message: "An account with this email already exists." });
+        return true;
+      }
+
+      bhw.name = normalizedName;
+      bhw.email = normalizedEmail;
+      bhw.assignedArea = normalizedAssignedArea;
+      bhw.contactNumber = normalizedContactNumber;
+      if (String(password || "").trim()) {
+        bhw.passwordHash = hashPassword(String(password));
+      }
+      sendJson(response, 200, { bhw: toBhwUser(bhw) });
+      return true;
+    }
+
+    const params = [normalizedName, normalizedEmail, normalizedAssignedArea, normalizedContactNumber || null];
+    let passwordClause = "";
+    if (String(password || "").trim()) {
+      passwordClause = ", password_hash = ?";
+      params.push(hashPassword(String(password)));
+    }
+    params.push(emailKey);
+
+    try {
+      const [result] = await pool.query(
+        `UPDATE users SET name = ?, email = ?, assigned_area = ?, contact_number = ?${passwordClause} WHERE email = ? AND role = 'bhw'`,
+        params,
+      );
+      if (result.affectedRows === 0) {
+        sendJson(response, 404, { message: "BHW account not found." });
+        return true;
+      }
+      const [rows] = await pool.query("SELECT id, name, email, assigned_area, contact_number FROM users WHERE email = ? AND role = 'bhw' LIMIT 1", [normalizedEmail]);
+      sendJson(response, 200, { bhw: toBhwUser(rows[0]) });
+    } catch (error) {
+      if (error.code === "ER_DUP_ENTRY") {
+        sendJson(response, 409, { message: "An account with this email already exists." });
+        return true;
+      }
+      throw error;
+    }
+    return true;
+  }
+
+  if (bhwMatch && request.method === "DELETE") {
+    const emailKey = decodeURIComponent(bhwMatch[1]).trim().toLowerCase();
+    if (!emailKey) {
+      sendJson(response, 400, { message: "BHW email is required." });
+      return true;
+    }
+
+    if (usingMemoryStore) {
+      const existingCount = memoryStore.users.length;
+      memoryStore.users = memoryStore.users.filter((user) => !(user.email === emailKey && user.role === "bhw"));
+      sendJson(response, existingCount === memoryStore.users.length ? 404 : 200, existingCount === memoryStore.users.length ? { message: "BHW account not found." } : { success: true });
+      return true;
+    }
+
+    const [result] = await pool.query("DELETE FROM users WHERE email = ? AND role = 'bhw'", [emailKey]);
+    sendJson(response, result.affectedRows === 0 ? 404 : 200, result.affectedRows === 0 ? { message: "BHW account not found." } : { success: true });
+    return true;
+  }
+
   if (request.method === "POST" && pathname === "/api/auth/admin-login") {
     const { email, password } = await readRequestBody(request);
     if (usingMemoryStore) {
       const user = findMemoryUser(email, password, "admin");
-      sendJson(response, user ? 200 : 401, user ? { success: true, user: { name: user.name, email: user.email } } : { success: false, message: "Invalid email or password." });
+      sendJson(response, user ? 200 : 401, user ? { success: true, user: toPublicUser(user) } : { success: false, message: "Invalid email or password." });
       return true;
     }
 
-    const [rows] = await pool.query("SELECT name, email FROM users WHERE email = ? AND password_hash = ? AND role = 'admin' LIMIT 1", [
+    const [rows] = await pool.query("SELECT name, email, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND password_hash = ? AND role = 'admin' LIMIT 1", [
       String(email || "").trim().toLowerCase(),
       hashPassword(String(password || "")),
     ]);
-    sendJson(response, rows.length ? 200 : 401, rows.length ? { success: true, user: rows[0] } : { success: false, message: "Invalid email or password." });
+    sendJson(response, rows.length ? 200 : 401, rows.length ? { success: true, user: toPublicUser(rows[0]) } : { success: false, message: "Invalid email or password." });
+    return true;
+  }
+
+  if (request.method === "POST" && pathname === "/api/auth/bhw-login") {
+    const { email, password } = await readRequestBody(request);
+    if (usingMemoryStore) {
+      const user = findMemoryUser(email, password, "bhw");
+      sendJson(response, user ? 200 : 401, user ? { success: true, user: toPublicUser(user) } : { success: false, message: "Invalid email or password." });
+      return true;
+    }
+
+    const [rows] = await pool.query("SELECT name, email, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND password_hash = ? AND role = 'bhw' LIMIT 1", [
+      String(email || "").trim().toLowerCase(),
+      hashPassword(String(password || "")),
+    ]);
+    sendJson(response, rows.length ? 200 : 401, rows.length ? { success: true, user: toPublicUser(rows[0]) } : { success: false, message: "Invalid email or password." });
     return true;
   }
 
@@ -291,15 +485,15 @@ async function handleApi(request, response, pathname) {
     const { email, password } = await readRequestBody(request);
     if (usingMemoryStore) {
       const user = findMemoryUser(email, password, "user");
-      sendJson(response, user ? 200 : 401, user ? { success: true, user: { name: user.name, email: user.email } } : { success: false, message: "Invalid email or password." });
+      sendJson(response, user ? 200 : 401, user ? { success: true, user: toPublicUser(user) } : { success: false, message: "Invalid email or password." });
       return true;
     }
 
-    const [rows] = await pool.query("SELECT name, email FROM users WHERE email = ? AND password_hash = ? AND role = 'user' LIMIT 1", [
+    const [rows] = await pool.query("SELECT name, email, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND password_hash = ? AND role = 'user' LIMIT 1", [
       String(email || "").trim().toLowerCase(),
       hashPassword(String(password || "")),
     ]);
-    sendJson(response, rows.length ? 200 : 401, rows.length ? { success: true, user: rows[0] } : { success: false, message: "Invalid email or password." });
+    sendJson(response, rows.length ? 200 : 401, rows.length ? { success: true, user: toPublicUser(rows[0]) } : { success: false, message: "Invalid email or password." });
     return true;
   }
 
@@ -335,7 +529,7 @@ async function handleApi(request, response, pathname) {
         contactNumber: normalizedContactNumber || null,
         residencyConfirmed: true,
       });
-      sendJson(response, 201, { success: true, user: { name: normalizedName, email: normalizedEmail } });
+      sendJson(response, 201, { success: true, user: toPublicUser(memoryStore.users.at(-1)) });
       return true;
     }
 
@@ -352,7 +546,16 @@ async function handleApi(request, response, pathname) {
         normalizedContactNumber || null,
         ],
       );
-      sendJson(response, 201, { success: true, user: { name: String(name || "").trim(), email: normalizedEmail } });
+      sendJson(response, 201, {
+        success: true,
+        user: {
+          name: String(name || "").trim(),
+          email: normalizedEmail,
+          residentAddress: normalizedAddress,
+          contactNumber: normalizedContactNumber,
+          residencyConfirmed: true,
+        },
+      });
     } catch (error) {
       if (error.code === "ER_DUP_ENTRY") {
         sendJson(response, 409, { success: false, message: "An account with this email already exists." });
@@ -363,12 +566,151 @@ async function handleApi(request, response, pathname) {
     return true;
   }
 
+  if (request.method === "PUT" && pathname === "/api/auth/profile") {
+    const { email, name, residentAddress, contactNumber } = await readRequestBody(request);
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedName = String(name || "").trim();
+    const normalizedAddress = String(residentAddress || "").trim();
+    const normalizedContactNumber = String(contactNumber || "").trim();
+
+    if (!normalizedName || !normalizedAddress) {
+      sendJson(response, 400, { success: false, message: "Name and address are required." });
+      return true;
+    }
+
+    if (!normalizedAddress.toLowerCase().includes("tinampa-an")) {
+      sendJson(response, 400, { success: false, message: "Address must confirm residency in Barangay Tinampa-an." });
+      return true;
+    }
+
+    if (usingMemoryStore) {
+      const user = memoryStore.users.find((item) => item.email === normalizedEmail && item.role === "user");
+      if (!user) {
+        sendJson(response, 404, { success: false, message: "User account not found." });
+        return true;
+      }
+
+      user.name = normalizedName;
+      user.residentAddress = normalizedAddress;
+      user.contactNumber = normalizedContactNumber;
+      user.residencyConfirmed = true;
+      sendJson(response, 200, { success: true, message: "Profile updated successfully.", user: toPublicUser(user) });
+      return true;
+    }
+
+    const [result] = await pool.query(
+      `UPDATE users
+       SET name = ?, resident_address = ?, contact_number = ?, residency_confirmed = 1
+       WHERE email = ? AND role = 'user'`,
+      [normalizedName, normalizedAddress, normalizedContactNumber || null, normalizedEmail],
+    );
+
+    if (result.affectedRows === 0) {
+      sendJson(response, 404, { success: false, message: "User account not found." });
+      return true;
+    }
+
+    sendJson(response, 200, {
+      success: true,
+      message: "Profile updated successfully.",
+      user: {
+        name: normalizedName,
+        email: normalizedEmail,
+        residentAddress: normalizedAddress,
+        contactNumber: normalizedContactNumber,
+        residencyConfirmed: true,
+      },
+    });
+    return true;
+  }
+
+  if (request.method === "PUT" && pathname === "/api/auth/staff-profile") {
+    const { email, role, name, contactNumber } = await readRequestBody(request);
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedRole = String(role || "").trim().toLowerCase();
+    const normalizedName = String(name || "").trim();
+    const normalizedContactNumber = String(contactNumber || "").trim();
+
+    if (!normalizedEmail || normalizedRole !== "bhw" || !normalizedName) {
+      sendJson(response, 400, { success: false, message: "BHW name and account type are required." });
+      return true;
+    }
+
+    if (usingMemoryStore) {
+      const user = memoryStore.users.find((item) => item.email === normalizedEmail && item.role === "bhw");
+      if (!user) {
+        sendJson(response, 404, { success: false, message: "BHW account not found." });
+        return true;
+      }
+
+      user.name = normalizedName;
+      user.contactNumber = normalizedContactNumber;
+      memoryStore.children = memoryStore.children.map((child) =>
+        child.assignedBhwEmail === normalizedEmail ? { ...child, assignedBhwName: normalizedName } : child,
+      );
+      sendJson(response, 200, { success: true, message: "Profile updated successfully.", user: toPublicUser(user) });
+      return true;
+    }
+
+    const [result] = await pool.query(
+      "UPDATE users SET name = ?, contact_number = ? WHERE email = ? AND role = 'bhw'",
+      [normalizedName, normalizedContactNumber || null, normalizedEmail],
+    );
+
+    if (result.affectedRows === 0) {
+      sendJson(response, 404, { success: false, message: "BHW account not found." });
+      return true;
+    }
+
+    await pool.query("UPDATE children SET assigned_bhw_name = ? WHERE assigned_bhw_email = ?", [normalizedName, normalizedEmail]);
+
+    const [rows] = await pool.query("SELECT name, email, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND role = 'bhw' LIMIT 1", [normalizedEmail]);
+    sendJson(response, 200, { success: true, message: "Profile updated successfully.", user: toPublicUser(rows[0]) });
+    return true;
+  }
+
+  if (request.method === "DELETE" && pathname === "/api/auth/profile") {
+    const { email, currentPassword, role } = await readRequestBody(request);
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedRole = String(role || "").trim().toLowerCase();
+
+    if (!normalizedEmail || !currentPassword || !["bhw", "user"].includes(normalizedRole)) {
+      sendJson(response, 400, { success: false, message: "Email, current password, and account type are required." });
+      return true;
+    }
+
+    if (usingMemoryStore) {
+      const user = findMemoryUser(normalizedEmail, currentPassword, normalizedRole);
+      if (!user) {
+        sendJson(response, 401, { success: false, message: "Current email or password is incorrect." });
+        return true;
+      }
+
+      memoryStore.users = memoryStore.users.filter((item) => !(item.email === normalizedEmail && item.role === normalizedRole));
+      sendJson(response, 200, { success: true, message: "Profile deleted successfully." });
+      return true;
+    }
+
+    const [result] = await pool.query(
+      "DELETE FROM users WHERE email = ? AND password_hash = ? AND role = ?",
+      [normalizedEmail, hashPassword(String(currentPassword)), normalizedRole],
+    );
+
+    if (result.affectedRows === 0) {
+      sendJson(response, 401, { success: false, message: "Current email or password is incorrect." });
+      return true;
+    }
+
+    sendJson(response, 200, { success: true, message: "Profile deleted successfully." });
+    return true;
+  }
+
   if (request.method === "POST" && pathname === "/api/auth/reset-password") {
     const { email, currentPassword, newPassword, role } = await readRequestBody(request);
     const normalizedEmail = String(email || "").trim().toLowerCase();
     const normalizedRole = String(role || "").trim().toLowerCase();
 
-    if (!normalizedEmail || !currentPassword || !newPassword || !["admin", "user"].includes(normalizedRole)) {
+    if (!normalizedEmail || !currentPassword || !newPassword || !["admin", "bhw", "user"].includes(normalizedRole)) {
       sendJson(response, 400, { success: false, message: "Email, current password, new password, and account type are required." });
       return true;
     }
@@ -424,8 +766,8 @@ async function handleApi(request, response, pathname) {
     await pool.query(
       `INSERT INTO children (
         id, first_name, middle_name, last_name, name, birth_date, age, age_display, gender,
-        weight, height, bmi, status, avatar, parent_name, mother_name, father_name, parent_address, allergies, created_by_email, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        weight, height, bmi, status, avatar, parent_name, mother_name, father_name, parent_address, assigned_area, assigned_bhw_name, assigned_bhw_email, allergies, created_by_email, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         child.id,
         child.firstName,
@@ -445,6 +787,9 @@ async function handleApi(request, response, pathname) {
         child.motherName || child.parentName,
         child.fatherName || child.parentName,
         child.address || "",
+        child.assignedArea || "Purok 1 - Riverside",
+        child.assignedBhwName || "BHW Demo",
+        child.assignedBhwEmail || "bhw@nutritrack.gov.ph",
         child.allergies || "",
         child.createdByEmail || null,
         child.updatedAt || null,

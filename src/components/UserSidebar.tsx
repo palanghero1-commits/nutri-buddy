@@ -41,6 +41,7 @@ function UserSidebarContent({
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/user" },
+    { icon: UserRound, label: "Profile", path: "/user/profile" },
     { icon: Salad, label: "Meals", path: "/user/meals" },
     { icon: TrendingUp, label: "Growth", path: "/user/growth" },
   ];

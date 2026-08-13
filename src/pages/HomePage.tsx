@@ -148,7 +148,7 @@ export default function HomePage() {
             </h1>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
               A digital health monitoring system designed to track children&apos;s nutritional intake, growth, and overall well-being -
-              empowering parents, guardians, and health professionals.
+              empowering guardians and health professionals.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
@@ -282,7 +282,7 @@ export default function HomePage() {
           </div>
           <h2 className="text-3xl font-bold text-foreground">About Nutri-Track</h2>
           <p className="mt-4 leading-relaxed text-muted-foreground">
-            The Nutri-Track System is designed for Barangay Tinampa-an Health Center, Cadiz City - a digital solution for monitoring children&apos;s nutritional intake and overall health status. It supports parents, guardians, and health professionals in promoting healthy growth and development through data-driven insights, AI-powered recommendations, and comprehensive reporting tools.
+            The Nutri-Track System is designed for Barangay Tinampa-an Health Center, Cadiz City - a digital solution for monitoring children&apos;s nutritional intake and overall health status. It supports guardians and health professionals in promoting healthy growth and development through data-driven insights, AI-powered recommendations, and comprehensive reporting tools.
           </p>
           <p className="mt-4 leading-relaxed text-muted-foreground">
             Evaluated using the ISO/IEC 25010 (SQuaRE) model for functional suitability, performance efficiency, usability, reliability, security, maintainability, flexibility, and safety.

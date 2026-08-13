@@ -102,8 +102,8 @@ export default function UserChildProfile() {
           <div className="section-enter stagger-2 rounded-xl border border-border/70 bg-card p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="font-semibold text-foreground">Parent Information</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Parent and guardian details linked to this profile.</p>
+                <h2 className="font-semibold text-foreground">Guardian Information</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Guardian details linked to this profile.</p>
               </div>
               <UserRound className="h-5 w-5 text-muted-foreground" />
             </div>
@@ -117,8 +117,16 @@ export default function UserChildProfile() {
                 <dd className="font-medium text-foreground">{child.fatherName || "Not recorded"}</dd>
               </div>
               <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
-                <dt className="text-muted-foreground">Parent/Guardian</dt>
+                <dt className="text-muted-foreground">Guardian</dt>
                 <dd className="font-medium text-foreground">{child.parentName}</dd>
+              </div>
+              <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
+                <dt className="text-muted-foreground">Assigned Area</dt>
+                <dd className="text-right font-medium text-foreground">{child.assignedArea || "Not assigned"}</dd>
+              </div>
+              <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
+                <dt className="text-muted-foreground">Assigned BHW</dt>
+                <dd className="text-right font-medium text-foreground">{child.assignedBhwName || "Not assigned"}</dd>
               </div>
               <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
                 <dt className="text-muted-foreground">Address</dt>

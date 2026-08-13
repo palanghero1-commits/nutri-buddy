@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   formatChildAge,
+  getBhwForArea,
   getChildAgeParts,
   seedChildren,
   seedGrowthData,
@@ -12,6 +13,7 @@ import {
   type MealEntry,
 } from "@/lib/mockData";
 import { apiRequest } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 
 type AddChildInput = {
   firstName: string;
@@ -25,6 +27,7 @@ type AddChildInput = {
   motherName: string;
   fatherName: string;
   address: string;
+  assignedArea: string;
   allergies?: string;
   createdByEmail?: string;
 };
@@ -222,6 +225,7 @@ function deriveDashboardStats(children: Child[], meals: MealEntry[], alerts: Ale
 }
 
 export function NutriDataProvider({ children }: { children: ReactNode }) {
+  const { staffRole, staffUser } = useAuth();
   const [childProfiles, setChildProfiles] = useState<Child[]>(() => loadStorage(STORAGE_KEYS.children, seedChildren));
   const [mealEntries, setMealEntries] = useState<MealEntry[]>(() => loadStorage(STORAGE_KEYS.meals, seedMealEntries));
   const [growthData, setGrowthData] = useState<Record<string, GrowthRecord[]>>(() =>
@@ -258,6 +262,9 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
           motherName: child.motherName || child.parentName,
           fatherName: child.fatherName || child.parentName,
           address: child.address || "",
+          assignedArea: child.assignedArea || getBhwForArea(child.address).area,
+          assignedBhwName: child.assignedBhwName || getBhwForArea(child.assignedArea || child.address).bhwName,
+          assignedBhwEmail: child.assignedBhwEmail || getBhwForArea(child.assignedArea || child.address).bhwEmail,
           allergies: child.allergies || "",
         };
 
@@ -276,6 +283,32 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
       }),
     [childProfiles],
   );
+
+  const visibleChildren = useMemo(() => {
+    if (staffRole !== "bhw" || !staffUser?.assignedArea) {
+      return childrenWithCurrentAges;
+    }
+
+    return childrenWithCurrentAges.filter((child) => child.assignedArea === staffUser.assignedArea);
+  }, [childrenWithCurrentAges, staffRole, staffUser?.assignedArea]);
+
+  const visibleMealEntries = useMemo(() => {
+    if (staffRole !== "bhw") {
+      return mealEntries;
+    }
+
+    const visibleChildIds = new Set(visibleChildren.map((child) => child.id));
+    return mealEntries.filter((meal) => visibleChildIds.has(meal.childId));
+  }, [mealEntries, staffRole, visibleChildren]);
+
+  const visibleGrowthData = useMemo(() => {
+    if (staffRole !== "bhw") {
+      return growthData;
+    }
+
+    const visibleChildIds = new Set(visibleChildren.map((child) => child.id));
+    return Object.fromEntries(Object.entries(growthData).filter(([childId]) => visibleChildIds.has(childId)));
+  }, [growthData, staffRole, visibleChildren]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.children, JSON.stringify(childProfiles));
@@ -298,6 +331,7 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
     const name = createFullName(firstName, middleName, lastName);
     const age = getChildAgeParts(input.birthDate).years;
     const ageDisplay = formatChildAge(input.birthDate);
+    const assignedBhw = getBhwForArea(input.assignedArea);
     const nextChild: Child = {
       id: createId("child"),
       firstName,
@@ -317,6 +351,9 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
       motherName: input.motherName.trim(),
       fatherName: input.fatherName.trim(),
       address: input.address.trim(),
+      assignedArea: assignedBhw.area,
+      assignedBhwName: assignedBhw.bhwName,
+      assignedBhwEmail: assignedBhw.bhwEmail,
       allergies: input.allergies?.trim() || "",
       createdByEmail: input.createdByEmail,
       updatedAt: today,
@@ -411,18 +448,18 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const alerts = useMemo(() => deriveAlerts(childrenWithCurrentAges), [childrenWithCurrentAges]);
+  const alerts = useMemo(() => deriveAlerts(visibleChildren), [visibleChildren]);
   const dashboardStats = useMemo(
-    () => deriveDashboardStats(childrenWithCurrentAges, mealEntries, alerts),
-    [alerts, childrenWithCurrentAges, mealEntries],
+    () => deriveDashboardStats(visibleChildren, visibleMealEntries, alerts),
+    [alerts, visibleChildren, visibleMealEntries],
   );
 
   return (
     <NutriDataContext.Provider
       value={{
-        children: childrenWithCurrentAges,
-        mealEntries,
-        growthData,
+        children: visibleChildren,
+        mealEntries: visibleMealEntries,
+        growthData: visibleGrowthData,
         alerts,
         dashboardStats,
         addChild,
