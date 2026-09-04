@@ -60,7 +60,7 @@ export default function ReportsPage() {
       <div className="stat-card mt-6 section-enter stagger-3">
         <h2 className="font-semibold mb-4">Children Summary Table</h2>
         <div className="overflow-x-auto">
-          <table className="min-w-[980px] w-full text-sm">
+          <table className="min-w-[1060px] w-full text-sm">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">Name</th>
@@ -70,6 +70,7 @@ export default function ReportsPage() {
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">BMI</th>
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">Status</th>
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">Guardian</th>
+                <th className="text-left py-3 px-2 font-medium text-muted-foreground">Guardian Type</th>
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">Assigned Area</th>
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">Assigned BHW</th>
                 <th className="text-left py-3 px-2 font-medium text-muted-foreground">Mother</th>
@@ -97,6 +98,7 @@ export default function ReportsPage() {
                     </span>
                   </td>
                   <td className="py-3 px-2 text-muted-foreground">{child.parentName}</td>
+                  <td className="py-3 px-2 text-muted-foreground">{child.guardianType || "Not recorded"}</td>
                   <td className="py-3 px-2 text-muted-foreground">{child.assignedArea || "Not assigned"}</td>
                   <td className="py-3 px-2 text-muted-foreground">{child.assignedBhwName || "Not assigned"}</td>
                   <td className="py-3 px-2 text-muted-foreground">{child.motherName || child.parentName}</td>

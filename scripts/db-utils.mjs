@@ -28,6 +28,7 @@ export const schemaStatements = [
     email VARCHAR(190) NOT NULL UNIQUE,
     password_hash CHAR(64) NOT NULL,
     role ENUM('admin', 'bhw', 'user') NOT NULL DEFAULT 'user',
+    designation VARCHAR(120) NULL,
     assigned_area VARCHAR(120) NULL,
     resident_address TEXT NULL,
     contact_number VARCHAR(40) NULL,
@@ -51,9 +52,16 @@ export const schemaStatements = [
     status ENUM('Normal', 'Underweight', 'Overweight', 'Stunted') NOT NULL,
     avatar VARCHAR(12) NOT NULL,
     parent_name VARCHAR(150) NOT NULL,
+    guardian_type ENUM('Mother', 'Father', 'Aunt', 'Uncle', 'Grandmother', 'Grandfather') NULL,
     mother_name VARCHAR(150) NOT NULL,
     father_name VARCHAR(150) NOT NULL,
     parent_address TEXT NULL,
+    guardian_purok VARCHAR(120) NULL,
+    guardian_hacienda VARCHAR(120) NULL,
+    guardian_street VARCHAR(160) NULL,
+    guardian_barangay VARCHAR(120) NULL,
+    guardian_city_municipality VARCHAR(120) NULL,
+    guardian_province VARCHAR(120) NULL,
     assigned_area VARCHAR(120) NULL,
     assigned_bhw_name VARCHAR(150) NULL,
     assigned_bhw_email VARCHAR(190) NULL,
@@ -161,6 +169,10 @@ async function ensureChildrenColumns(connection) {
     await connection.query("ALTER TABLE children MODIFY mother_name VARCHAR(150) NOT NULL");
   }
 
+  if (!existingColumns.has("guardian_type")) {
+    await connection.query("ALTER TABLE children ADD COLUMN guardian_type ENUM('Mother', 'Father', 'Aunt', 'Uncle', 'Grandmother', 'Grandfather') NULL AFTER parent_name");
+  }
+
   if (!existingColumns.has("father_name")) {
     await connection.query("ALTER TABLE children ADD COLUMN father_name VARCHAR(150) NULL AFTER mother_name");
     await connection.query("UPDATE children SET father_name = parent_name WHERE father_name IS NULL OR father_name = ''");
@@ -169,6 +181,30 @@ async function ensureChildrenColumns(connection) {
 
   if (!existingColumns.has("parent_address")) {
     await connection.query("ALTER TABLE children ADD COLUMN parent_address TEXT NULL AFTER father_name");
+  }
+
+  if (!existingColumns.has("guardian_purok")) {
+    await connection.query("ALTER TABLE children ADD COLUMN guardian_purok VARCHAR(120) NULL AFTER parent_address");
+  }
+
+  if (!existingColumns.has("guardian_hacienda")) {
+    await connection.query("ALTER TABLE children ADD COLUMN guardian_hacienda VARCHAR(120) NULL AFTER guardian_purok");
+  }
+
+  if (!existingColumns.has("guardian_street")) {
+    await connection.query("ALTER TABLE children ADD COLUMN guardian_street VARCHAR(160) NULL AFTER guardian_hacienda");
+  }
+
+  if (!existingColumns.has("guardian_barangay")) {
+    await connection.query("ALTER TABLE children ADD COLUMN guardian_barangay VARCHAR(120) NULL AFTER guardian_street");
+  }
+
+  if (!existingColumns.has("guardian_city_municipality")) {
+    await connection.query("ALTER TABLE children ADD COLUMN guardian_city_municipality VARCHAR(120) NULL AFTER guardian_barangay");
+  }
+
+  if (!existingColumns.has("guardian_province")) {
+    await connection.query("ALTER TABLE children ADD COLUMN guardian_province VARCHAR(120) NULL AFTER guardian_city_municipality");
   }
 
   if (!existingColumns.has("allergies")) {
@@ -204,8 +240,13 @@ async function ensureUserColumns(connection) {
     await connection.query("ALTER TABLE users ADD COLUMN resident_address TEXT NULL AFTER role");
   }
 
+  if (!existingColumns.has("designation")) {
+    await connection.query("ALTER TABLE users ADD COLUMN designation VARCHAR(120) NULL AFTER role");
+    await connection.query("UPDATE users SET designation = 'Barangay Health Worker' WHERE role = 'bhw' AND (designation IS NULL OR designation = '')");
+  }
+
   if (!existingColumns.has("assigned_area")) {
-    await connection.query("ALTER TABLE users ADD COLUMN assigned_area VARCHAR(120) NULL AFTER role");
+    await connection.query("ALTER TABLE users ADD COLUMN assigned_area VARCHAR(120) NULL AFTER designation");
   }
 
   if (!existingColumns.has("contact_number")) {
@@ -232,12 +273,13 @@ async function ensureUserRoleEnum(connection) {
 
 export async function seedDefaultUsers(connectionOrPool) {
   await connectionOrPool.query(
-    `INSERT INTO users (name, email, password_hash, role, assigned_area)
-     VALUES (?, ?, ?, ?, ?), (?, ?, ?, ?, ?), (?, ?, ?, ?, ?), (?, ?, ?, ?, ?), (?, ?, ?, ?, ?)
+    `INSERT INTO users (name, email, password_hash, role, designation, assigned_area)
+     VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE
        name = VALUES(name),
        password_hash = VALUES(password_hash),
        role = VALUES(role),
+       designation = VALUES(designation),
        assigned_area = VALUES(assigned_area)`,
     [
       "System Admin",
@@ -245,25 +287,30 @@ export async function seedDefaultUsers(connectionOrPool) {
       hashPassword("admin123"),
       "admin",
       null,
+      null,
       "BHW Demo",
       "bhw@nutritrack.gov.ph",
       hashPassword("bhw12345"),
       "bhw",
+      "Barangay Health Worker",
       "Purok 1 - Riverside",
       "Liza Montemayor",
       "bhw.proper@nutritrack.gov.ph",
       hashPassword("bhwproper123"),
       "bhw",
+      "Barangay Health Worker",
       "Purok 2 - Proper",
       "Nora Villanueva",
       "bhw.hillside@nutritrack.gov.ph",
       hashPassword("bhwhillside123"),
       "bhw",
+      "Barangay Health Worker",
       "Purok 3 - Hillside",
       "Maria Santos",
       "user@nutritrack.app",
       hashPassword("user12345"),
       "user",
+      null,
       null,
     ],
   );

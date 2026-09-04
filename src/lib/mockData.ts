@@ -7,9 +7,36 @@ export const tinampaanAreas = [
 ] as const;
 
 export type TinampaanArea = (typeof tinampaanAreas)[number]["area"];
+export type GuardianType = "Mother" | "Father" | "Aunt" | "Uncle" | "Grandmother" | "Grandfather";
+
+export interface GuardianAddress {
+  purok: string;
+  hacienda: string;
+  street: string;
+  barangay: string;
+  cityMunicipality: string;
+  province: string;
+}
 
 export function getBhwForArea(area: string) {
   return tinampaanAreas.find((assignment) => assignment.area === area) ?? tinampaanAreas[0];
+}
+
+export function getBhwForAddress(address: Pick<GuardianAddress, "purok" | "hacienda" | "street"> | string) {
+  const addressText = typeof address === "string"
+    ? address
+    : [address.purok, address.hacienda, address.street].filter(Boolean).join(" ");
+  const normalizedAddress = addressText.toLowerCase();
+
+  if (/\bpurok\s*2\b/.test(normalizedAddress) || normalizedAddress.includes("proper")) {
+    return getBhwForArea("Purok 2 - Proper");
+  }
+
+  if (/\bpurok\s*3\b/.test(normalizedAddress) || normalizedAddress.includes("hillside")) {
+    return getBhwForArea("Purok 3 - Hillside");
+  }
+
+  return getBhwForArea("Purok 1 - Riverside");
 }
 
 export interface Child {
@@ -28,9 +55,11 @@ export interface Child {
   status: ChildStatus;
   avatar: string;
   parentName: string;
+  guardianType?: GuardianType;
   motherName: string;
   fatherName: string;
   address: string;
+  guardianAddress?: GuardianAddress;
   assignedArea: string;
   assignedBhwName: string;
   assignedBhwEmail: string;

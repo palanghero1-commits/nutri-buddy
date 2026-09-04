@@ -33,6 +33,8 @@ const seedChildren = [
   ["6", "Carlos", null, "Mendoza", "Carlos Mendoza", "2023-07-01", 2, "2 years & 11 months", "Male", 10.2, 82, 15.2, "Normal", "CM", "Margie Mendoza", "Margie Mendoza", "Not recorded", "Barangay Tinampa-an, Cadiz City", "Purok 3 - Hillside", "Nora Villanueva", "bhw.hillside@nutritrack.gov.ph", "", null, "2026-03-17"],
 ];
 
+const guardianTypes = new Set(["Mother", "Father", "Aunt", "Uncle", "Grandmother", "Grandfather"]);
+
 const seedMeals = [
   ["m1", "1", "2026-03-20", "Breakfast", ["Rice porridge", "Boiled egg", "Banana"], 320, 12, 48, 8],
   ["m2", "1", "2026-03-20", "Lunch", ["Rice", "Chicken adobo", "Mung beans"], 450, 22, 55, 14],
@@ -57,11 +59,11 @@ let usingMemoryStore = false;
 
 const memoryStore = {
   users: [
-    { name: "System Admin", email: "admin@nutritrack.gov.ph", passwordHash: hashPassword("admin123"), role: "admin", residentAddress: "", contactNumber: "", residencyConfirmed: false },
-    { name: "BHW Demo", email: "bhw@nutritrack.gov.ph", passwordHash: hashPassword("bhw12345"), role: "bhw", assignedArea: "Purok 1 - Riverside", residentAddress: "", contactNumber: "", residencyConfirmed: false },
-    { name: "Liza Montemayor", email: "bhw.proper@nutritrack.gov.ph", passwordHash: hashPassword("bhwproper123"), role: "bhw", assignedArea: "Purok 2 - Proper", residentAddress: "", contactNumber: "", residencyConfirmed: false },
-    { name: "Nora Villanueva", email: "bhw.hillside@nutritrack.gov.ph", passwordHash: hashPassword("bhwhillside123"), role: "bhw", assignedArea: "Purok 3 - Hillside", residentAddress: "", contactNumber: "", residencyConfirmed: false },
-    { name: "Maria Santos", email: "user@nutritrack.app", passwordHash: hashPassword("user12345"), role: "user", residentAddress: "Barangay Tinampa-an, Cadiz City", contactNumber: "", residencyConfirmed: true },
+    { name: "System Admin", email: "admin@nutritrack.gov.ph", passwordHash: hashPassword("admin123"), role: "admin", designation: "", residentAddress: "", contactNumber: "", residencyConfirmed: false },
+    { name: "BHW Demo", email: "bhw@nutritrack.gov.ph", passwordHash: hashPassword("bhw12345"), role: "bhw", designation: "Barangay Health Worker", assignedArea: "Purok 1 - Riverside", residentAddress: "", contactNumber: "", residencyConfirmed: false },
+    { name: "Liza Montemayor", email: "bhw.proper@nutritrack.gov.ph", passwordHash: hashPassword("bhwproper123"), role: "bhw", designation: "Barangay Health Worker", assignedArea: "Purok 2 - Proper", residentAddress: "", contactNumber: "", residencyConfirmed: false },
+    { name: "Nora Villanueva", email: "bhw.hillside@nutritrack.gov.ph", passwordHash: hashPassword("bhwhillside123"), role: "bhw", designation: "Barangay Health Worker", assignedArea: "Purok 3 - Hillside", residentAddress: "", contactNumber: "", residencyConfirmed: false },
+    { name: "Maria Santos", email: "user@nutritrack.app", passwordHash: hashPassword("user12345"), role: "user", designation: "", residentAddress: "Barangay Tinampa-an, Cadiz City", contactNumber: "", residencyConfirmed: true },
   ],
   children: seedChildren.map((child) => ({
     id: child[0],
@@ -183,9 +185,18 @@ function toChild(row) {
     status: row.status,
     avatar: row.avatar,
     parentName: row.parent_name,
+    guardianType: row.guardian_type || undefined,
     motherName: row.mother_name || row.parent_name,
     fatherName: row.father_name || row.parent_name,
     address: row.parent_address || "",
+    guardianAddress: {
+      purok: row.guardian_purok || "",
+      hacienda: row.guardian_hacienda || "",
+      street: row.guardian_street || "",
+      barangay: row.guardian_barangay || "",
+      cityMunicipality: row.guardian_city_municipality || "",
+      province: row.guardian_province || "",
+    },
     assignedArea: row.assigned_area || "Purok 1 - Riverside",
     assignedBhwName: row.assigned_bhw_name || "BHW Demo",
     assignedBhwEmail: row.assigned_bhw_email || "bhw@nutritrack.gov.ph",
@@ -219,6 +230,10 @@ function toGrowth(row) {
 
 function isPositiveNumber(value) {
   return Number.isFinite(Number(value)) && Number(value) > 0;
+}
+
+function isNonAdminRole(value) {
+  return ["bhw", "user"].includes(String(value || "").trim().toLowerCase());
 }
 
 async function readRequestBody(request) {
@@ -270,6 +285,7 @@ function toPublicUser(user) {
   return {
     name: user.name,
     email: user.email,
+    designation: user.designation ?? "",
     assignedArea: user.assignedArea ?? user.assigned_area ?? "",
     residentAddress: user.residentAddress ?? user.resident_address ?? "",
     contactNumber: user.contactNumber ?? user.contact_number ?? "",
@@ -282,6 +298,7 @@ function toBhwUser(user) {
     id: user.id ?? user.email,
     name: user.name,
     email: user.email,
+    designation: user.designation ?? "",
     assignedArea: user.assignedArea ?? user.assigned_area ?? "",
     contactNumber: user.contactNumber ?? user.contact_number ?? "",
   };
@@ -309,20 +326,21 @@ async function handleApi(request, response, pathname) {
       return true;
     }
 
-    const [rows] = await pool.query("SELECT id, name, email, assigned_area, contact_number FROM users WHERE role = 'bhw' ORDER BY assigned_area ASC, name ASC");
+    const [rows] = await pool.query("SELECT id, name, email, designation, assigned_area, contact_number FROM users WHERE role = 'bhw' ORDER BY assigned_area ASC, name ASC");
     sendJson(response, 200, { bhws: rows.map(toBhwUser) });
     return true;
   }
 
   if (request.method === "POST" && pathname === "/api/bhws") {
-    const { name, email, password, assignedArea, contactNumber } = await readRequestBody(request);
+    const { name, email, password, designation, assignedArea, contactNumber } = await readRequestBody(request);
     const normalizedName = String(name || "").trim();
     const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedDesignation = String(designation || "").trim();
     const normalizedAssignedArea = String(assignedArea || "").trim();
     const normalizedContactNumber = String(contactNumber || "").trim();
 
-    if (!normalizedName || !normalizedEmail || !String(password || "").trim() || !normalizedAssignedArea) {
-      sendJson(response, 400, { message: "BHW name, email, password, and assigned area are required." });
+    if (!normalizedName || !normalizedEmail || !String(password || "").trim() || !normalizedDesignation || !normalizedAssignedArea) {
+      sendJson(response, 400, { message: "BHW name, email, password, designation, and assigned area are required." });
       return true;
     }
 
@@ -331,6 +349,7 @@ async function handleApi(request, response, pathname) {
       email: normalizedEmail,
       passwordHash: hashPassword(String(password)),
       role: "bhw",
+      designation: normalizedDesignation,
       assignedArea: normalizedAssignedArea,
       residentAddress: "",
       contactNumber: normalizedContactNumber,
@@ -350,10 +369,10 @@ async function handleApi(request, response, pathname) {
 
     try {
       await pool.query(
-        "INSERT INTO users (name, email, password_hash, role, assigned_area, contact_number, residency_confirmed) VALUES (?, ?, ?, 'bhw', ?, ?, 0)",
-        [normalizedName, normalizedEmail, hashPassword(String(password)), normalizedAssignedArea, normalizedContactNumber || null],
+        "INSERT INTO users (name, email, password_hash, role, designation, assigned_area, contact_number, residency_confirmed) VALUES (?, ?, ?, 'bhw', ?, ?, ?, 0)",
+        [normalizedName, normalizedEmail, hashPassword(String(password)), normalizedDesignation, normalizedAssignedArea, normalizedContactNumber || null],
       );
-      const [rows] = await pool.query("SELECT id, name, email, assigned_area, contact_number FROM users WHERE email = ? AND role = 'bhw' LIMIT 1", [normalizedEmail]);
+      const [rows] = await pool.query("SELECT id, name, email, designation, assigned_area, contact_number FROM users WHERE email = ? AND role = 'bhw' LIMIT 1", [normalizedEmail]);
       sendJson(response, 201, { bhw: toBhwUser(rows[0]) });
     } catch (error) {
       if (error.code === "ER_DUP_ENTRY") {
@@ -368,14 +387,15 @@ async function handleApi(request, response, pathname) {
   const bhwMatch = pathname.match(/^\/api\/bhws\/([^/]+)$/);
   if (bhwMatch && request.method === "PUT") {
     const emailKey = decodeURIComponent(bhwMatch[1]).trim().toLowerCase();
-    const { name, email, password, assignedArea, contactNumber } = await readRequestBody(request);
+    const { name, email, password, designation, assignedArea, contactNumber } = await readRequestBody(request);
     const normalizedName = String(name || "").trim();
     const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedDesignation = String(designation || "").trim();
     const normalizedAssignedArea = String(assignedArea || "").trim();
     const normalizedContactNumber = String(contactNumber || "").trim();
 
-    if (!emailKey || !normalizedName || !normalizedEmail || !normalizedAssignedArea) {
-      sendJson(response, 400, { message: "BHW name, email, and assigned area are required." });
+    if (!emailKey || !normalizedName || !normalizedEmail || !normalizedDesignation || !normalizedAssignedArea) {
+      sendJson(response, 400, { message: "BHW name, email, designation, and assigned area are required." });
       return true;
     }
 
@@ -392,6 +412,7 @@ async function handleApi(request, response, pathname) {
 
       bhw.name = normalizedName;
       bhw.email = normalizedEmail;
+      bhw.designation = normalizedDesignation;
       bhw.assignedArea = normalizedAssignedArea;
       bhw.contactNumber = normalizedContactNumber;
       if (String(password || "").trim()) {
@@ -401,7 +422,7 @@ async function handleApi(request, response, pathname) {
       return true;
     }
 
-    const params = [normalizedName, normalizedEmail, normalizedAssignedArea, normalizedContactNumber || null];
+    const params = [normalizedName, normalizedEmail, normalizedDesignation, normalizedAssignedArea, normalizedContactNumber || null];
     let passwordClause = "";
     if (String(password || "").trim()) {
       passwordClause = ", password_hash = ?";
@@ -411,14 +432,14 @@ async function handleApi(request, response, pathname) {
 
     try {
       const [result] = await pool.query(
-        `UPDATE users SET name = ?, email = ?, assigned_area = ?, contact_number = ?${passwordClause} WHERE email = ? AND role = 'bhw'`,
+        `UPDATE users SET name = ?, email = ?, designation = ?, assigned_area = ?, contact_number = ?${passwordClause} WHERE email = ? AND role = 'bhw'`,
         params,
       );
       if (result.affectedRows === 0) {
         sendJson(response, 404, { message: "BHW account not found." });
         return true;
       }
-      const [rows] = await pool.query("SELECT id, name, email, assigned_area, contact_number FROM users WHERE email = ? AND role = 'bhw' LIMIT 1", [normalizedEmail]);
+      const [rows] = await pool.query("SELECT id, name, email, designation, assigned_area, contact_number FROM users WHERE email = ? AND role = 'bhw' LIMIT 1", [normalizedEmail]);
       sendJson(response, 200, { bhw: toBhwUser(rows[0]) });
     } catch (error) {
       if (error.code === "ER_DUP_ENTRY") {
@@ -457,7 +478,7 @@ async function handleApi(request, response, pathname) {
       return true;
     }
 
-    const [rows] = await pool.query("SELECT name, email, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND password_hash = ? AND role = 'admin' LIMIT 1", [
+    const [rows] = await pool.query("SELECT name, email, designation, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND password_hash = ? AND role = 'admin' LIMIT 1", [
       String(email || "").trim().toLowerCase(),
       hashPassword(String(password || "")),
     ]);
@@ -473,7 +494,7 @@ async function handleApi(request, response, pathname) {
       return true;
     }
 
-    const [rows] = await pool.query("SELECT name, email, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND password_hash = ? AND role = 'bhw' LIMIT 1", [
+    const [rows] = await pool.query("SELECT name, email, designation, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND password_hash = ? AND role = 'bhw' LIMIT 1", [
       String(email || "").trim().toLowerCase(),
       hashPassword(String(password || "")),
     ]);
@@ -489,7 +510,7 @@ async function handleApi(request, response, pathname) {
       return true;
     }
 
-    const [rows] = await pool.query("SELECT name, email, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND password_hash = ? AND role = 'user' LIMIT 1", [
+    const [rows] = await pool.query("SELECT name, email, designation, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND password_hash = ? AND role = 'user' LIMIT 1", [
       String(email || "").trim().toLowerCase(),
       hashPassword(String(password || "")),
     ]);
@@ -664,7 +685,7 @@ async function handleApi(request, response, pathname) {
 
     await pool.query("UPDATE children SET assigned_bhw_name = ? WHERE assigned_bhw_email = ?", [normalizedName, normalizedEmail]);
 
-    const [rows] = await pool.query("SELECT name, email, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND role = 'bhw' LIMIT 1", [normalizedEmail]);
+    const [rows] = await pool.query("SELECT name, email, designation, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND role = 'bhw' LIMIT 1", [normalizedEmail]);
     sendJson(response, 200, { success: true, message: "Profile updated successfully.", user: toPublicUser(rows[0]) });
     return true;
   }
@@ -674,8 +695,8 @@ async function handleApi(request, response, pathname) {
     const normalizedEmail = String(email || "").trim().toLowerCase();
     const normalizedRole = String(role || "").trim().toLowerCase();
 
-    if (!normalizedEmail || !currentPassword || !["bhw", "user"].includes(normalizedRole)) {
-      sendJson(response, 400, { success: false, message: "Email, current password, and account type are required." });
+    if (!normalizedEmail || !currentPassword || !isNonAdminRole(normalizedRole)) {
+      sendJson(response, 400, { success: false, message: "Email, current password, and a non-admin account type are required." });
       return true;
     }
 
@@ -710,8 +731,8 @@ async function handleApi(request, response, pathname) {
     const normalizedEmail = String(email || "").trim().toLowerCase();
     const normalizedRole = String(role || "").trim().toLowerCase();
 
-    if (!normalizedEmail || !currentPassword || !newPassword || !["admin", "bhw", "user"].includes(normalizedRole)) {
-      sendJson(response, 400, { success: false, message: "Email, current password, new password, and account type are required." });
+    if (!normalizedEmail || !currentPassword || !isNonAdminRole(normalizedRole)) {
+      sendJson(response, 400, { success: false, message: "Email, current password, new password, and a non-admin account type are required." });
       return true;
     }
 
@@ -753,6 +774,11 @@ async function handleApi(request, response, pathname) {
       return true;
     }
 
+    if (!guardianTypes.has(child.guardianType) || !child.motherName || !child.guardianAddress?.purok || !child.guardianAddress?.barangay || !child.guardianAddress?.cityMunicipality || !child.guardianAddress?.province) {
+      sendJson(response, 400, { message: "Guardian type, guardian name, and complete guardian address are required." });
+      return true;
+    }
+
     if (usingMemoryStore) {
       memoryStore.children.unshift(child);
       if (growthRecord) {
@@ -766,8 +792,10 @@ async function handleApi(request, response, pathname) {
     await pool.query(
       `INSERT INTO children (
         id, first_name, middle_name, last_name, name, birth_date, age, age_display, gender,
-        weight, height, bmi, status, avatar, parent_name, mother_name, father_name, parent_address, assigned_area, assigned_bhw_name, assigned_bhw_email, allergies, created_by_email, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        weight, height, bmi, status, avatar, parent_name, guardian_type, mother_name, father_name, parent_address,
+        guardian_purok, guardian_hacienda, guardian_street, guardian_barangay, guardian_city_municipality, guardian_province,
+        assigned_area, assigned_bhw_name, assigned_bhw_email, allergies, created_by_email, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         child.id,
         child.firstName,
@@ -784,9 +812,16 @@ async function handleApi(request, response, pathname) {
         child.status,
         child.avatar,
         child.parentName,
+        child.guardianType || null,
         child.motherName || child.parentName,
-        child.fatherName || child.parentName,
+        child.fatherName || "Not recorded",
         child.address || "",
+        child.guardianAddress?.purok || "",
+        child.guardianAddress?.hacienda || "",
+        child.guardianAddress?.street || "",
+        child.guardianAddress?.barangay || "",
+        child.guardianAddress?.cityMunicipality || "",
+        child.guardianAddress?.province || "",
         child.assignedArea || "Purok 1 - Riverside",
         child.assignedBhwName || "BHW Demo",
         child.assignedBhwEmail || "bhw@nutritrack.gov.ph",
@@ -804,6 +839,83 @@ async function handleApi(request, response, pathname) {
       ]);
     }
     sendJson(response, 201, { child });
+    return true;
+  }
+
+  const childUpdateMatch = pathname.match(/^\/api\/children\/([^/]+)$/);
+  if (request.method === "PUT" && childUpdateMatch) {
+    const childId = decodeURIComponent(childUpdateMatch[1]);
+    const { child } = await readRequestBody(request);
+
+    if (!child?.id || child.id !== childId || !child?.firstName || !child?.lastName || !child?.birthDate || !child?.gender || !isPositiveNumber(child.weight) || !isPositiveNumber(child.height)) {
+      sendJson(response, 400, { message: "Child name, birthdate, gender, weight, and height are required." });
+      return true;
+    }
+
+    if (!guardianTypes.has(child.guardianType) || !child.motherName || !child.guardianAddress?.purok || !child.guardianAddress?.barangay || !child.guardianAddress?.cityMunicipality || !child.guardianAddress?.province) {
+      sendJson(response, 400, { message: "Guardian type, guardian name, and complete guardian address are required." });
+      return true;
+    }
+
+    if (usingMemoryStore) {
+      const existingIndex = memoryStore.children.findIndex((existingChild) => existingChild.id === childId);
+      if (existingIndex === -1) {
+        sendJson(response, 404, { message: "Child record not found." });
+        return true;
+      }
+
+      memoryStore.children[existingIndex] = child;
+      sendJson(response, 200, { child });
+      return true;
+    }
+
+    const [result] = await pool.query(
+      `UPDATE children SET
+        first_name = ?, middle_name = ?, last_name = ?, name = ?, birth_date = ?, age = ?, age_display = ?, gender = ?,
+        weight = ?, height = ?, bmi = ?, status = ?, avatar = ?, parent_name = ?, guardian_type = ?, mother_name = ?, father_name = ?, parent_address = ?,
+        guardian_purok = ?, guardian_hacienda = ?, guardian_street = ?, guardian_barangay = ?, guardian_city_municipality = ?, guardian_province = ?,
+        assigned_area = ?, assigned_bhw_name = ?, assigned_bhw_email = ?, allergies = ?, updated_at = ?
+      WHERE id = ?`,
+      [
+        child.firstName,
+        child.middleName || null,
+        child.lastName,
+        child.name,
+        child.birthDate,
+        child.age,
+        child.ageDisplay,
+        child.gender,
+        child.weight,
+        child.height,
+        child.bmi,
+        child.status,
+        child.avatar,
+        child.parentName,
+        child.guardianType || null,
+        child.motherName || child.parentName,
+        child.fatherName || "Not recorded",
+        child.address || "",
+        child.guardianAddress?.purok || "",
+        child.guardianAddress?.hacienda || "",
+        child.guardianAddress?.street || "",
+        child.guardianAddress?.barangay || "",
+        child.guardianAddress?.cityMunicipality || "",
+        child.guardianAddress?.province || "",
+        child.assignedArea || "Purok 1 - Riverside",
+        child.assignedBhwName || "BHW Demo",
+        child.assignedBhwEmail || "bhw@nutritrack.gov.ph",
+        child.allergies || "",
+        child.updatedAt || null,
+        childId,
+      ],
+    );
+
+    if (result.affectedRows === 0) {
+      sendJson(response, 404, { message: "Child record not found." });
+      return true;
+    }
+
+    sendJson(response, 200, { child });
     return true;
   }
 

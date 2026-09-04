@@ -9,6 +9,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { normalizeGrowthDateInput } from "@/lib/featureGuard";
 import {
   Dialog,
   DialogContent,
@@ -19,10 +20,31 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useNutriData } from "@/hooks/useNutriData";
-import { formatChildAge, tinampaanAreas } from "@/lib/mockData";
+import { formatChildAge, getBhwForAddress, type GuardianAddress, type GuardianType } from "@/lib/mockData";
 
 const today = new Date().toISOString().slice(0, 10);
 const currentMonth = new Date().toISOString().slice(0, 7);
+const guardianTypes: GuardianType[] = ["Mother", "Father", "Aunt", "Uncle", "Grandmother", "Grandfather"];
+
+const createEmptyGuardianAddress = (): GuardianAddress => ({
+  purok: "",
+  hacienda: "",
+  street: "",
+  barangay: "Tinampa-an",
+  cityMunicipality: "Cadiz City",
+  province: "Negros Occidental",
+});
+
+function formatGuardianAddress(address: GuardianAddress) {
+  return [
+    address.purok,
+    address.hacienda ? `Hda. ${address.hacienda}` : "",
+    address.street,
+    address.barangay ? `Barangay ${address.barangay}` : "",
+    address.cityMunicipality,
+    address.province,
+  ].map((part) => part.trim()).filter(Boolean).join(", ");
+}
 
 export default function UserPortal() {
   const { currentUser } = useAuth();
@@ -37,10 +59,10 @@ export default function UserPortal() {
     gender: "Female",
     weight: "",
     height: "",
+    guardianType: "Mother" as GuardianType,
     motherName: currentUser?.name || "",
     fatherName: "",
-    address: "",
-    assignedArea: tinampaanAreas[0].area,
+    guardianAddress: createEmptyGuardianAddress(),
     allergies: "",
   });
   const [mealForm, setMealForm] = useState({
@@ -55,17 +77,21 @@ export default function UserPortal() {
   });
   const [growthForm, setGrowthForm] = useState({
     childId: "",
-    date: currentMonth,
+    date: normalizeGrowthDateInput(currentMonth),
     weight: "",
     height: "",
   });
   const [message, setMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const myChildren = useMemo(
     () => children.filter((child) => child.createdByEmail === currentUser?.email),
     [children, currentUser?.email],
   );
   const calculatedChildAge = formatChildAge(childForm.birthDate);
+  const guardianNameLabel = `${childForm.guardianType}'s Name`;
+  const guardianNamePlaceholder = `Enter ${childForm.guardianType.toLowerCase()}'s full name`;
+  const assignedBhw = getBhwForAddress(childForm.guardianAddress);
 
   useEffect(() => {
     if (!mealForm.childId && myChildren.length > 0) {
@@ -79,91 +105,143 @@ export default function UserPortal() {
     }
   }, [growthForm.childId, myChildren]);
 
-  const handleAddChild = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAddChild = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!currentUser) return;
+    if (!currentUser) {
+      setErrorMessage("Please sign in before saving a child profile.");
+      return;
+    }
 
-    addChild({
-      firstName: childForm.firstName,
-      middleName: childForm.middleName,
-      lastName: childForm.lastName,
-      birthDate: childForm.birthDate,
-      gender: childForm.gender as "Male" | "Female",
-      weight: Number(childForm.weight),
-      height: Number(childForm.height),
-      parentName: currentUser.name,
-      motherName: childForm.motherName,
-      fatherName: childForm.fatherName,
-      address: childForm.address,
-      assignedArea: childForm.assignedArea,
-      allergies: childForm.allergies,
-      createdByEmail: currentUser.email,
-    });
+    const guardianAddress = {
+      ...childForm.guardianAddress,
+      purok: childForm.guardianAddress.purok.trim(),
+      hacienda: childForm.guardianAddress.hacienda.trim(),
+      street: childForm.guardianAddress.street.trim(),
+      barangay: childForm.guardianAddress.barangay.trim(),
+      cityMunicipality: childForm.guardianAddress.cityMunicipality.trim(),
+      province: childForm.guardianAddress.province.trim(),
+    };
+    const formattedGuardianAddress = formatGuardianAddress(guardianAddress);
+    const lockedBhwAssignment = getBhwForAddress(guardianAddress);
 
-    setChildForm({
-      firstName: "",
-      middleName: "",
-      lastName: "",
-      birthDate: "",
-      gender: "Female",
-      weight: "",
-      height: "",
-      motherName: currentUser.name,
-      fatherName: "",
-      address: "",
-      assignedArea: tinampaanAreas[0].area,
-      allergies: "",
-    });
-    setMessage("Child profile saved. The admin dashboard now uses this record.");
-    setActiveDialog(null);
+    if (!childForm.guardianType || !childForm.motherName.trim() || !guardianAddress.purok || !guardianAddress.barangay || !guardianAddress.cityMunicipality || !guardianAddress.province) {
+      setErrorMessage("Please complete the guardian type, guardian name, and required address details.");
+      return;
+    }
+
+    if (!childForm.firstName.trim() || !childForm.lastName.trim() || !childForm.birthDate || !childForm.weight || !childForm.height) {
+      setErrorMessage("Please complete the child’s name, birth date, weight, and height.");
+      return;
+    }
+
+    try {
+      await addChild({
+        firstName: childForm.firstName,
+        middleName: childForm.middleName,
+        lastName: childForm.lastName,
+        birthDate: childForm.birthDate,
+        gender: childForm.gender as "Male" | "Female",
+        weight: Number(childForm.weight),
+        height: Number(childForm.height),
+        parentName: currentUser.name,
+        guardianType: childForm.guardianType,
+        motherName: childForm.motherName,
+        fatherName: childForm.fatherName,
+        address: formattedGuardianAddress,
+        guardianAddress,
+        assignedArea: lockedBhwAssignment.area,
+        allergies: childForm.allergies,
+        createdByEmail: currentUser.email,
+      });
+
+      setChildForm({
+        firstName: "",
+        middleName: "",
+        lastName: "",
+        birthDate: "",
+        gender: "Female",
+        weight: "",
+        height: "",
+        guardianType: "Mother",
+        motherName: currentUser.name,
+        fatherName: "",
+        guardianAddress: createEmptyGuardianAddress(),
+        allergies: "",
+      });
+      setErrorMessage("");
+      setMessage("Child profile saved. The admin dashboard now uses this record.");
+      setActiveDialog(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Child profile could not be saved.");
+    }
   };
 
-  const handleAddMeal = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAddMeal = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    addMealEntry({
-      childId: mealForm.childId,
-      date: mealForm.date,
-      mealType: mealForm.mealType as "Breakfast" | "Lunch" | "Dinner" | "Snack",
-      foods: mealForm.foods.split(",").map((food) => food.trim()).filter(Boolean),
-      calories: Number(mealForm.calories),
-      protein: Number(mealForm.protein),
-      carbs: Number(mealForm.carbs),
-      fat: Number(mealForm.fat),
-    });
+    if (!mealForm.childId || !mealForm.date || !mealForm.foods.trim()) {
+      setErrorMessage("Please choose a child and enter at least one food item.");
+      return;
+    }
 
-    setMealForm((current) => ({
-      ...current,
-      date: today,
-      mealType: "Breakfast",
-      foods: "",
-      calories: "",
-      protein: "",
-      carbs: "",
-      fat: "",
-    }));
-    setMessage("Meal entry saved. It is now visible in the admin meal tracker.");
-    setActiveDialog(null);
+    try {
+      await addMealEntry({
+        childId: mealForm.childId,
+        date: mealForm.date,
+        mealType: mealForm.mealType as "Breakfast" | "Lunch" | "Dinner" | "Snack",
+        foods: mealForm.foods.split(",").map((food) => food.trim()).filter(Boolean),
+        calories: Number(mealForm.calories),
+        protein: Number(mealForm.protein),
+        carbs: Number(mealForm.carbs),
+        fat: Number(mealForm.fat),
+      });
+
+      setMealForm((current) => ({
+        ...current,
+        date: today,
+        mealType: "Breakfast",
+        foods: "",
+        calories: "",
+        protein: "",
+        carbs: "",
+        fat: "",
+      }));
+      setErrorMessage("");
+      setMessage("Meal entry saved. It is now visible in the admin meal tracker.");
+      setActiveDialog(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Meal entry could not be saved.");
+    }
   };
 
-  const handleAddGrowthRecord = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAddGrowthRecord = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    addGrowthRecord({
-      childId: growthForm.childId,
-      date: growthForm.date,
-      weight: Number(growthForm.weight),
-      height: Number(growthForm.height),
-    });
+    if (!growthForm.childId || !growthForm.weight || !growthForm.height) {
+      setErrorMessage("Please select a child and enter both weight and height.");
+      return;
+    }
 
-    setGrowthForm((current) => ({
-      ...current,
-      date: currentMonth,
-      weight: "",
-      height: "",
-    }));
-    setMessage("Growth update saved. Charts, reports, and alerts now reflect the latest values.");
-    setActiveDialog(null);
+    try {
+      await addGrowthRecord({
+        childId: growthForm.childId,
+        date: normalizeGrowthDateInput(growthForm.date),
+        weight: Number(growthForm.weight),
+        height: Number(growthForm.height),
+      });
+
+      setGrowthForm((current) => ({
+        ...current,
+        date: normalizeGrowthDateInput(currentMonth),
+        weight: "",
+        height: "",
+      }));
+      setErrorMessage("");
+      setMessage("Growth update saved. Charts, reports, and alerts now reflect the latest values.");
+      setActiveDialog(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Growth update could not be saved.");
+    }
   };
 
   return (
@@ -200,9 +278,10 @@ export default function UserPortal() {
               </div>
             </div>
 
-            {message && (
-              <div className="border-t border-border/70 bg-background/80 px-5 py-3 text-sm text-foreground sm:px-7">
-                {message}
+            {(message || errorMessage) && (
+              <div className="border-t border-border/70 bg-background/80 px-5 py-3 text-sm sm:px-7">
+                {message && <div className="text-foreground">{message}</div>}
+                {errorMessage && <div className="mt-1 text-destructive">{errorMessage}</div>}
               </div>
             )}
           </div>
@@ -304,6 +383,94 @@ export default function UserPortal() {
           </DialogHeader>
           <form onSubmit={handleAddChild} className="grid gap-4">
             <div className="grid gap-3">
+              <h3 className="text-sm font-semibold text-foreground">Guardian Information</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-sm text-foreground">
+                  Type of Guardian
+                  <select
+                    required
+                    value={childForm.guardianType}
+                    onChange={(event) => setChildForm((current) => ({ ...current, guardianType: event.target.value as GuardianType }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  >
+                    {guardianTypes.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-sm text-foreground">
+                  {guardianNameLabel}
+                  <input
+                    required
+                    placeholder={guardianNamePlaceholder}
+                    value={childForm.motherName}
+                    onChange={(event) => setChildForm((current) => ({ ...current, motherName: event.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-sm text-foreground">
+                  Purok
+                  <input
+                    required
+                    value={childForm.guardianAddress.purok}
+                    onChange={(event) => setChildForm((current) => ({ ...current, guardianAddress: { ...current.guardianAddress, purok: event.target.value } }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+                <label className="text-sm text-foreground">
+                  Hacienda (Hda.)
+                  <input
+                    value={childForm.guardianAddress.hacienda}
+                    onChange={(event) => setChildForm((current) => ({ ...current, guardianAddress: { ...current.guardianAddress, hacienda: event.target.value } }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+                <label className="text-sm text-foreground">
+                  Street
+                  <input
+                    value={childForm.guardianAddress.street}
+                    onChange={(event) => setChildForm((current) => ({ ...current, guardianAddress: { ...current.guardianAddress, street: event.target.value } }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+                <label className="text-sm text-foreground">
+                  Barangay
+                  <input
+                    required
+                    value={childForm.guardianAddress.barangay}
+                    onChange={(event) => setChildForm((current) => ({ ...current, guardianAddress: { ...current.guardianAddress, barangay: event.target.value } }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+                <label className="text-sm text-foreground">
+                  City/Municipality
+                  <input
+                    required
+                    value={childForm.guardianAddress.cityMunicipality}
+                    onChange={(event) => setChildForm((current) => ({ ...current, guardianAddress: { ...current.guardianAddress, cityMunicipality: event.target.value } }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+                <label className="text-sm text-foreground">
+                  Province
+                  <input
+                    required
+                    value={childForm.guardianAddress.province}
+                    onChange={(event) => setChildForm((current) => ({ ...current, guardianAddress: { ...current.guardianAddress, province: event.target.value } }))}
+                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
+                  />
+                </label>
+                <div className="rounded-lg border border-input bg-muted/60 px-3 py-2.5 text-sm text-foreground sm:col-span-2">
+                  <p className="text-xs text-muted-foreground">Assigned BHW Area</p>
+                  <p className="mt-1 font-semibold">{assignedBhw.area}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{assignedBhw.bhwName}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3">
               <h3 className="text-sm font-semibold text-foreground">Child Information</h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="text-sm text-foreground">
@@ -395,58 +562,6 @@ export default function UserPortal() {
               </div>
             </div>
 
-            <div className="grid gap-3 border-t border-border pt-4">
-              <h3 className="text-sm font-semibold text-foreground">Guardian Information</h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="text-sm text-foreground">
-                  Mother&apos;s Name
-                  <input
-                    required
-                    value={childForm.motherName}
-                    onChange={(event) => setChildForm((current) => ({ ...current, motherName: event.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
-                  />
-                </label>
-                <label className="text-sm text-foreground">
-                  Father&apos;s Name
-                  <input
-                    required
-                    value={childForm.fatherName}
-                    onChange={(event) => setChildForm((current) => ({ ...current, fatherName: event.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
-                  />
-                </label>
-                <div className="rounded-lg border border-input bg-muted/60 px-3 py-2.5 text-sm text-foreground">
-                  <p className="text-xs text-muted-foreground">Guardian</p>
-                  <p className="mt-1 font-semibold">{currentUser?.name}</p>
-                </div>
-                <label className="text-sm text-foreground sm:col-span-2">
-                  Address
-                  <textarea
-                    required
-                    rows={3}
-                    value={childForm.address}
-                    onChange={(event) => setChildForm((current) => ({ ...current, address: event.target.value }))}
-                    className="mt-1 w-full resize-none rounded-lg border border-input bg-background px-3 py-2.5"
-                  />
-                </label>
-                <label className="text-sm text-foreground sm:col-span-2">
-                  Area in Barangay Tinampa-an
-                  <select
-                    required
-                    value={childForm.assignedArea}
-                    onChange={(event) => setChildForm((current) => ({ ...current, assignedArea: event.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
-                  >
-                    {tinampaanAreas.map((assignment) => (
-                      <option key={assignment.area} value={assignment.area}>
-                        {assignment.area} - {assignment.bhwName}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setActiveDialog(null)}>
                 Cancel

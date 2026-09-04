@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/api";
 interface UserSession {
   name: string;
   email: string;
+  designation?: string;
   assignedArea?: string;
   residentAddress?: string;
   contactNumber?: string;
@@ -28,7 +29,7 @@ interface AuthContextType {
   ) => Promise<{ success: boolean; message: string }>;
   updateUserProfile: (profile: { name: string; residentAddress: string; contactNumber?: string }) => Promise<{ success: boolean; message: string }>;
   updateStaffProfile: (profile: { name: string; contactNumber?: string }) => Promise<{ success: boolean; message: string }>;
-  resetPassword: (email: string, currentPassword: string, newPassword: string, role: "admin" | "bhw" | "user") => Promise<{ success: boolean; message: string }>;
+  resetPassword: (email: string, currentPassword: string, newPassword: string, role: "bhw" | "user") => Promise<{ success: boolean; message: string }>;
   deleteAccount: (currentPassword: string, role: "bhw" | "user") => Promise<{ success: boolean; message: string }>;
   logout: () => void;
 }
@@ -252,7 +253,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const resetPassword = async (email: string, currentPassword: string, newPassword: string, role: "admin" | "bhw" | "user") => {
+  const resetPassword = async (email: string, currentPassword: string, newPassword: string, role: "bhw" | "user") => {
+    if (role === "admin") {
+      return {
+        success: false,
+        message: "Admin accounts cannot use the password reset flow.",
+      };
+    }
+
     try {
       const result = await apiRequest<AuthResponse>("/api/auth/reset-password", {
         method: "POST",
@@ -260,7 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       return {
-        success: true,
+        success: result.success !== false,
         message: result.message || "Password reset successfully.",
       };
     } catch (error) {

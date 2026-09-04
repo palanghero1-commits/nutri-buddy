@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import {
   formatChildAge,
   getBhwForArea,
+  getBhwForAddress,
   getChildAgeParts,
   seedChildren,
   seedGrowthData,
@@ -24,9 +25,11 @@ type AddChildInput = {
   weight: number;
   height: number;
   parentName: string;
+  guardianType: Child["guardianType"];
   motherName: string;
   fatherName: string;
   address: string;
+  guardianAddress: Child["guardianAddress"];
   assignedArea: string;
   allergies?: string;
   createdByEmail?: string;
@@ -67,6 +70,7 @@ type NutriDataContextType = {
   alerts: Alert[];
   dashboardStats: DashboardStats;
   addChild: (input: AddChildInput) => Promise<void>;
+  updateChild: (childId: string, input: AddChildInput) => Promise<void>;
   addMealEntry: (input: AddMealInput) => Promise<void>;
   addGrowthRecord: (input: AddGrowthRecordInput) => Promise<void>;
 };
@@ -231,6 +235,7 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
   const [growthData, setGrowthData] = useState<Record<string, GrowthRecord[]>>(() =>
     loadStorage(STORAGE_KEYS.growth, seedGrowthData),
   );
+  const [isDemoFallbackActive, setIsDemoFallbackActive] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -241,9 +246,15 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
         setChildProfiles(data.children);
         setMealEntries(data.mealEntries);
         setGrowthData(data.growthData);
+        setIsDemoFallbackActive(false);
       })
       .catch((error) => {
-        console.error("Unable to load data from MySQL API. Using local cached data.", error);
+        if (!isActive) return;
+        console.warn("Production nutrition API unavailable. Falling back to demo seed data for this session.", error);
+        setChildProfiles(seedChildren);
+        setMealEntries(seedMealEntries);
+        setGrowthData(seedGrowthData);
+        setIsDemoFallbackActive(true);
       });
 
     return () => {
@@ -254,6 +265,9 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
     () =>
       childProfiles.map((child) => {
         const nameParts = splitName(child.name);
+        const derivedBhw = child.assignedArea
+          ? getBhwForArea(child.assignedArea)
+          : getBhwForAddress(child.guardianAddress || child.address);
         const normalizedChild = {
           ...child,
           firstName: child.firstName || nameParts.firstName,
@@ -262,9 +276,11 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
           motherName: child.motherName || child.parentName,
           fatherName: child.fatherName || child.parentName,
           address: child.address || "",
-          assignedArea: child.assignedArea || getBhwForArea(child.address).area,
-          assignedBhwName: child.assignedBhwName || getBhwForArea(child.assignedArea || child.address).bhwName,
-          assignedBhwEmail: child.assignedBhwEmail || getBhwForArea(child.assignedArea || child.address).bhwEmail,
+          guardianType: child.guardianType,
+          guardianAddress: child.guardianAddress,
+          assignedArea: child.assignedArea || derivedBhw.area,
+          assignedBhwName: child.assignedBhwName || derivedBhw.bhwName,
+          assignedBhwEmail: child.assignedBhwEmail || derivedBhw.bhwEmail,
           allergies: child.allergies || "",
         };
 
@@ -348,9 +364,11 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
       status: deriveStatus(age, input.height, bmi),
       avatar: createAvatar(name),
       parentName: input.parentName.trim(),
+      guardianType: input.guardianType,
       motherName: input.motherName.trim(),
-      fatherName: input.fatherName.trim(),
+      fatherName: input.fatherName.trim() || "Not recorded",
       address: input.address.trim(),
+      guardianAddress: input.guardianAddress,
       assignedArea: assignedBhw.area,
       assignedBhwName: assignedBhw.bhwName,
       assignedBhwEmail: assignedBhw.bhwEmail,
@@ -374,6 +392,67 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
       });
     } catch (error) {
       console.error("Unable to save child to MySQL API.", error);
+    }
+  };
+
+  const buildChildFromInput = (input: AddChildInput, existingChild?: Child): Child => {
+    const bmi = calculateBmi(input.weight, input.height);
+    const today = new Date().toISOString().slice(0, 10);
+    const firstName = input.firstName.trim();
+    const middleName = input.middleName?.trim();
+    const lastName = input.lastName.trim();
+    const name = createFullName(firstName, middleName, lastName);
+    const age = getChildAgeParts(input.birthDate).years;
+    const ageDisplay = formatChildAge(input.birthDate);
+    const assignedBhw = getBhwForArea(input.assignedArea);
+
+    return {
+      id: existingChild?.id ?? createId("child"),
+      firstName,
+      middleName,
+      lastName,
+      name,
+      birthDate: input.birthDate,
+      age,
+      ageDisplay,
+      gender: input.gender,
+      weight: toFixedNumber(input.weight),
+      height: toFixedNumber(input.height),
+      bmi,
+      status: deriveStatus(age, input.height, bmi),
+      avatar: createAvatar(name),
+      parentName: input.parentName.trim(),
+      guardianType: input.guardianType,
+      motherName: input.motherName.trim(),
+      fatherName: input.fatherName.trim() || "Not recorded",
+      address: input.address.trim(),
+      guardianAddress: input.guardianAddress,
+      assignedArea: assignedBhw.area,
+      assignedBhwName: assignedBhw.bhwName,
+      assignedBhwEmail: assignedBhw.bhwEmail,
+      allergies: input.allergies?.trim() || "",
+      createdByEmail: existingChild?.createdByEmail ?? input.createdByEmail,
+      updatedAt: today,
+    };
+  };
+
+  const updateChild = async (childId: string, input: AddChildInput) => {
+    const existingChild = childProfiles.find((child) => child.id === childId);
+    if (!existingChild) return;
+
+    const updatedChild = buildChildFromInput(input, existingChild);
+
+    setChildProfiles((current) =>
+      current.map((child) => (child.id === childId ? updatedChild : child)),
+    );
+
+    try {
+      await apiRequest<{ child: Child }>(`/api/children/${encodeURIComponent(childId)}`, {
+        method: "PUT",
+        body: JSON.stringify({ child: updatedChild }),
+      });
+    } catch (error) {
+      console.error("Unable to update child in MySQL API.", error);
     }
   };
 
@@ -463,10 +542,16 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
         alerts,
         dashboardStats,
         addChild,
+        updateChild,
         addMealEntry,
         addGrowthRecord,
       }}
     >
+      {isDemoFallbackActive && (
+        <div className="sr-only" aria-live="polite">
+          Demo data mode active because the production nutrition API is unavailable.
+        </div>
+      )}
       {children}
     </NutriDataContext.Provider>
   );

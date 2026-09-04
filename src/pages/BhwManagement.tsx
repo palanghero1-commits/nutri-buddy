@@ -19,6 +19,7 @@ type BhwAccount = {
   id: number | string;
   name: string;
   email: string;
+  designation: string;
   assignedArea: string;
   contactNumber?: string;
 };
@@ -27,6 +28,7 @@ type BhwForm = {
   name: string;
   email: string;
   password: string;
+  designation: string;
   assignedArea: string;
   contactNumber: string;
 };
@@ -39,6 +41,7 @@ const emptyForm: BhwForm = {
   name: "",
   email: "",
   password: "",
+  designation: "Barangay Health Worker",
   assignedArea: tinampaanAreas[0].area,
   contactNumber: "",
 };
@@ -95,6 +98,7 @@ export default function BhwManagement() {
       name: bhw.name,
       email: bhw.email,
       password: "",
+      designation: bhw.designation || "Barangay Health Worker",
       assignedArea: bhw.assignedArea || tinampaanAreas[0].area,
       contactNumber: bhw.contactNumber || "",
     });
@@ -119,14 +123,14 @@ export default function BhwManagement() {
           body: JSON.stringify(form),
         });
         setBhws((current) => current.map((bhw) => (bhw.email === editingBhw.email ? result.bhw : bhw)));
-        toast({ title: "BHW updated", description: "The assigned area has been saved." });
+        toast({ title: "BHW updated", description: "The account designation and assigned area have been saved." });
       } else {
         const result = await apiRequest<{ bhw: BhwAccount }>("/api/bhws", {
           method: "POST",
           body: JSON.stringify(form),
         });
         setBhws((current) => [...current, result.bhw].sort((a, b) => a.assignedArea.localeCompare(b.assignedArea)));
-        toast({ title: "BHW added", description: "The BHW account is ready." });
+        toast({ title: "BHW added", description: "The admin-generated BHW account is ready." });
       }
       closeDialog();
     } catch (error) {
@@ -164,7 +168,7 @@ export default function BhwManagement() {
       <div className="section-enter flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">BHW Management</h1>
-          <p className="mt-1 text-muted-foreground">Manage Barangay Health Workers and their assigned Tinampa-an areas.</p>
+          <p className="mt-1 text-muted-foreground">Generate Barangay Health Worker accounts, designations, and assigned Tinampa-an areas.</p>
         </div>
         <Button type="button" onClick={openAddDialog}>
           <Plus className="h-4 w-4" /> Add BHW
@@ -196,6 +200,7 @@ export default function BhwManagement() {
               <tr className="border-b border-border bg-muted/60">
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">BHW</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Designation</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Assigned Area</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Contact</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Actions</th>
@@ -204,11 +209,11 @@ export default function BhwManagement() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Loading BHW accounts...</td>
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Loading BHW accounts...</td>
                 </tr>
               ) : bhws.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">No BHW accounts yet.</td>
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No BHW accounts yet.</td>
                 </tr>
               ) : (
                 bhws.map((bhw) => (
@@ -222,6 +227,7 @@ export default function BhwManagement() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{bhw.email}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{bhw.designation || "Barangay Health Worker"}</td>
                     <td className="px-4 py-3 text-muted-foreground">{bhw.assignedArea || "Not assigned"}</td>
                     <td className="px-4 py-3 text-muted-foreground">{bhw.contactNumber || "Not recorded"}</td>
                     <td className="px-4 py-3">
@@ -247,7 +253,7 @@ export default function BhwManagement() {
           <DialogHeader>
             <DialogTitle>{editingBhw ? "Edit BHW" : "Add BHW"}</DialogTitle>
             <DialogDescription>
-              Assign the BHW to one area inside Barangay Tinampa-an.
+              Admin creates the BHW login account, designation, and assigned area.
             </DialogDescription>
           </DialogHeader>
 
@@ -261,6 +267,11 @@ export default function BhwManagement() {
                 <Label htmlFor="bhw-email">Email</Label>
                 <Input id="bhw-email" type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} required />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bhw-designation">Designation</Label>
+              <Input id="bhw-designation" value={form.designation} onChange={(event) => setForm((current) => ({ ...current, designation: event.target.value }))} required />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

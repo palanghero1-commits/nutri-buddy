@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, KeyRound, Mail, MapPin, Phone, Trash2, UserRound } from "lucide-react";
+import { BadgeCheck, CheckCircle2, KeyRound, Mail, MapPin, Phone, Trash2, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -153,6 +153,14 @@ export default function BhwProfile() {
               <div className="mt-1 flex items-center gap-2 rounded-lg border border-input bg-muted/60 px-3 py-2.5 text-muted-foreground">
                 <Mail className="h-4 w-4" />
                 <span className="text-sm">{staffUser?.email}</span>
+              </div>
+            </label>
+
+            <label className="text-sm text-foreground">
+              Designation
+              <div className="mt-1 flex items-center gap-2 rounded-lg border border-input bg-muted/60 px-3 py-2.5 text-muted-foreground">
+                <BadgeCheck className="h-4 w-4" />
+                <span className="text-sm">{staffUser?.designation || "Barangay Health Worker"}</span>
               </div>
             </label>
 

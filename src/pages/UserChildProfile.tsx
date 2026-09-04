@@ -121,6 +121,10 @@ export default function UserChildProfile() {
                 <dd className="font-medium text-foreground">{child.parentName}</dd>
               </div>
               <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
+                <dt className="text-muted-foreground">Type of Guardian</dt>
+                <dd className="font-medium text-foreground">{child.guardianType || "Not recorded"}</dd>
+              </div>
+              <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
                 <dt className="text-muted-foreground">Assigned Area</dt>
                 <dd className="text-right font-medium text-foreground">{child.assignedArea || "Not assigned"}</dd>
               </div>
