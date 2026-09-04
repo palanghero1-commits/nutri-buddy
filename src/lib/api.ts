@@ -9,9 +9,10 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     },
   });
 
-  const payload = (await response.json().catch(() => null)) as T & { message?: string };
+  const isJsonResponse = response.headers.get("content-type")?.includes("application/json");
+  const payload = isJsonResponse ? ((await response.json().catch(() => null)) as T & { message?: string }) : null;
 
-  if (!response.ok) {
+  if (!response.ok || !payload) {
     throw new Error(payload?.message || "The server request failed.");
   }
 
