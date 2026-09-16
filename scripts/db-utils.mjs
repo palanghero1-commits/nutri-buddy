@@ -33,6 +33,10 @@ export const schemaStatements = [
     resident_address TEXT NULL,
     contact_number VARCHAR(40) NULL,
     residency_confirmed TINYINT(1) NOT NULL DEFAULT 0,
+    verification_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+    id_document_name VARCHAR(255) NULL,
+    id_document_type VARCHAR(100) NULL,
+    id_document_data LONGTEXT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 
@@ -255,6 +259,22 @@ async function ensureUserColumns(connection) {
 
   if (!existingColumns.has("residency_confirmed")) {
     await connection.query("ALTER TABLE users ADD COLUMN residency_confirmed TINYINT(1) NOT NULL DEFAULT 0 AFTER contact_number");
+  }
+
+  if (!existingColumns.has("verification_status")) {
+    await connection.query("ALTER TABLE users ADD COLUMN verification_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending' AFTER residency_confirmed");
+  }
+
+  if (!existingColumns.has("id_document_name")) {
+    await connection.query("ALTER TABLE users ADD COLUMN id_document_name VARCHAR(255) NULL AFTER verification_status");
+  }
+
+  if (!existingColumns.has("id_document_type")) {
+    await connection.query("ALTER TABLE users ADD COLUMN id_document_type VARCHAR(100) NULL AFTER id_document_name");
+  }
+
+  if (!existingColumns.has("id_document_data")) {
+    await connection.query("ALTER TABLE users ADD COLUMN id_document_data LONGTEXT NULL AFTER id_document_type");
   }
 }
 

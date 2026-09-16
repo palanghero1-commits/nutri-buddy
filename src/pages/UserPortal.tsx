@@ -247,6 +247,11 @@ export default function UserPortal() {
   return (
     <div className="min-h-screen bg-background">
       <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:py-9">
+        {currentUser?.verificationStatus === "pending" && (
+          <div className="mb-5 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-foreground">
+            <span className="font-semibold">ID verification pending.</span> Your registration document has been submitted and will be reviewed by an authorized Admin or BHW.
+          </div>
+        )}
         <section className="grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
           <div className="section-enter overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm">
             <div className="p-5 sm:p-7">

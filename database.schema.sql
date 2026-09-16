@@ -15,6 +15,10 @@ CREATE TABLE IF NOT EXISTS users (
   resident_address TEXT NULL,
   contact_number VARCHAR(40) NULL,
   residency_confirmed TINYINT(1) NOT NULL DEFAULT 0,
+  verification_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+  id_document_name VARCHAR(255) NULL,
+  id_document_type VARCHAR(100) NULL,
+  id_document_data LONGTEXT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

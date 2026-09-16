@@ -27,6 +27,21 @@
   }
 }
 
+@keyframes face-scan-sweep {
+  0%, 100% { top: 16%; opacity: 0.35; }
+  50% { top: 82%; opacity: 1; }
+}
+
+@keyframes face-frame-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.75; }
+  50% { transform: scale(1.025); opacity: 1; }
+}
+
+@keyframes face-status-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(16 185 129 / 0.35); }
+  50% { box-shadow: 0 0 0 7px rgb(16 185 129 / 0); }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;

@@ -9,6 +9,7 @@ interface UserSession {
   residentAddress?: string;
   contactNumber?: string;
   residencyConfirmed?: boolean;
+  verificationStatus?: "pending" | "approved" | "rejected";
 }
 
 type StaffRole = "admin" | "bhw";
@@ -25,7 +26,7 @@ interface AuthContextType {
     name: string,
     email: string,
     password: string,
-    verification: { residentAddress: string; contactNumber?: string; residencyConfirmed: boolean },
+    verification: { residentAddress: string; contactNumber?: string; residencyConfirmed: boolean; faceVerified: boolean; idDocument: { name: string; type: string; data: string; ocrText: string } },
   ) => Promise<{ success: boolean; message: string }>;
   updateUserProfile: (profile: { name: string; residentAddress: string; contactNumber?: string }) => Promise<{ success: boolean; message: string }>;
   updateStaffProfile: (profile: { name: string; contactNumber?: string }) => Promise<{ success: boolean; message: string }>;
@@ -161,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     name: string,
     email: string,
     password: string,
-    verification: { residentAddress: string; contactNumber?: string; residencyConfirmed: boolean },
+    verification: { residentAddress: string; contactNumber?: string; residencyConfirmed: boolean; faceVerified: boolean; idDocument: { name: string; type: string; data: string; ocrText: string } },
   ) => {
     try {
       const result = await apiRequest<AuthResponse>("/api/auth/register", {

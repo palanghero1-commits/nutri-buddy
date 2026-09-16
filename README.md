@@ -16,6 +16,8 @@ This project was built as a final-year web application using:
 
 The current implementation uses a Node API server connected to MySQL. The React app talks to the API for accounts, child profiles, meal entries, and growth records. `sessionStorage` is still used only for the currently signed-in browser session.
 
+The project now also includes a Supabase connection layer in `src/lib/supabase.ts` and a PostgreSQL schema in `supabase/schema.sql`. The existing API remains on MySQL until the data-provider migration is enabled.
+
 ## Main Features
 
 ### Public Side
@@ -185,7 +187,18 @@ CREATE DATABASE nutri_buddy CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 Then point `MYSQL_DATABASE` to that database name.
 
-### 3. Check MySQL connection and schema
+### 3. Configure Supabase connection
+
+Add these Vite variables to `.env` using your Supabase project URL and anon key:
+
+```bash
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+Run `supabase/schema.sql` in the Supabase SQL Editor to create the online tables. Never put the Supabase `service_role` key in frontend variables or commit it to the repository.
+
+### 4. Check MySQL connection and schema
 
 Run this before transferring or presenting the project:
 
@@ -195,7 +208,7 @@ npm run db:check
 
 This command verifies the MySQL connection, creates missing tables, confirms required tables exist, performs a small write/read/delete test, and checks foreign-key cascade deletes.
 
-### 4. Start development server
+### 5. Start development server
 
 ```bash
 npm run dev
@@ -206,7 +219,7 @@ This runs both:
 - API server: `http://localhost:3001`
 - Vite app: `http://localhost:8080`
 
-### 5. Reset demo data
+### 6. Reset demo data
 
 To keep the demo admin/user accounts but remove child, meal, and growth records:
 
@@ -214,19 +227,19 @@ To keep the demo admin/user accounts but remove child, meal, and growth records:
 npm run db:reset-demo
 ```
 
-### 6. Build for production
+### 7. Build for production
 
 ```bash
 npm run build
 ```
 
-### 7. Preview production build
+### 8. Preview production build
 
 ```bash
 npm run preview
 ```
 
-### 8. Run built app with Node server
+### 9. Run built app with Node server
 
 ```bash
 npm run build

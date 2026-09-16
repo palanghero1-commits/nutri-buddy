@@ -63,7 +63,7 @@ const memoryStore = {
     { name: "BHW Demo", email: "bhw@nutritrack.gov.ph", passwordHash: hashPassword("bhw12345"), role: "bhw", designation: "Barangay Health Worker", assignedArea: "Purok 1 - Riverside", residentAddress: "", contactNumber: "", residencyConfirmed: false },
     { name: "Liza Montemayor", email: "bhw.proper@nutritrack.gov.ph", passwordHash: hashPassword("bhwproper123"), role: "bhw", designation: "Barangay Health Worker", assignedArea: "Purok 2 - Proper", residentAddress: "", contactNumber: "", residencyConfirmed: false },
     { name: "Nora Villanueva", email: "bhw.hillside@nutritrack.gov.ph", passwordHash: hashPassword("bhwhillside123"), role: "bhw", designation: "Barangay Health Worker", assignedArea: "Purok 3 - Hillside", residentAddress: "", contactNumber: "", residencyConfirmed: false },
-    { name: "Maria Santos", email: "user@nutritrack.app", passwordHash: hashPassword("user12345"), role: "user", designation: "", residentAddress: "Barangay Tinampa-an, Cadiz City", contactNumber: "", residencyConfirmed: true },
+    { name: "Maria Santos", email: "user@nutritrack.app", passwordHash: hashPassword("user12345"), role: "user", designation: "", residentAddress: "Barangay Tinampa-an, Cadiz City", contactNumber: "", residencyConfirmed: true, verificationStatus: "approved", idDocumentName: "", idDocumentType: "", idDocumentData: "" },
   ],
   children: seedChildren.map((child) => ({
     id: child[0],
@@ -290,6 +290,7 @@ function toPublicUser(user) {
     residentAddress: user.residentAddress ?? user.resident_address ?? "",
     contactNumber: user.contactNumber ?? user.contact_number ?? "",
     residencyConfirmed: Boolean(user.residencyConfirmed ?? user.residency_confirmed),
+    verificationStatus: user.verificationStatus ?? user.verification_status ?? "pending",
   };
 }
 
@@ -478,7 +479,7 @@ async function handleApi(request, response, pathname) {
       return true;
     }
 
-    const [rows] = await pool.query("SELECT name, email, designation, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND password_hash = ? AND role = 'admin' LIMIT 1", [
+    const [rows] = await pool.query("SELECT name, email, designation, assigned_area, resident_address, contact_number, residency_confirmed, verification_status FROM users WHERE email = ? AND password_hash = ? AND role = 'admin' LIMIT 1", [
       String(email || "").trim().toLowerCase(),
       hashPassword(String(password || "")),
     ]);
@@ -494,7 +495,7 @@ async function handleApi(request, response, pathname) {
       return true;
     }
 
-    const [rows] = await pool.query("SELECT name, email, designation, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND password_hash = ? AND role = 'bhw' LIMIT 1", [
+    const [rows] = await pool.query("SELECT name, email, designation, assigned_area, resident_address, contact_number, residency_confirmed, verification_status FROM users WHERE email = ? AND password_hash = ? AND role = 'bhw' LIMIT 1", [
       String(email || "").trim().toLowerCase(),
       hashPassword(String(password || "")),
     ]);
@@ -510,7 +511,7 @@ async function handleApi(request, response, pathname) {
       return true;
     }
 
-    const [rows] = await pool.query("SELECT name, email, designation, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND password_hash = ? AND role = 'user' LIMIT 1", [
+    const [rows] = await pool.query("SELECT name, email, designation, assigned_area, resident_address, contact_number, residency_confirmed, verification_status FROM users WHERE email = ? AND password_hash = ? AND role = 'user' LIMIT 1", [
       String(email || "").trim().toLowerCase(),
       hashPassword(String(password || "")),
     ]);
@@ -519,13 +520,29 @@ async function handleApi(request, response, pathname) {
   }
 
   if (request.method === "POST" && pathname === "/api/auth/register") {
-    const { name, email, password, residentAddress, contactNumber, residencyConfirmed } = await readRequestBody(request);
+    const { name, email, password, residentAddress, contactNumber, residencyConfirmed, faceVerified, idDocument } = await readRequestBody(request);
     const normalizedEmail = String(email || "").trim().toLowerCase();
     const normalizedAddress = String(residentAddress || "").trim();
     const normalizedContactNumber = String(contactNumber || "").trim();
 
-    if (!normalizedAddress || residencyConfirmed !== true) {
-      sendJson(response, 400, { success: false, message: "Tinampa-an residency verification is required before registration." });
+    if (!normalizedAddress || residencyConfirmed !== true || faceVerified !== true || !idDocument?.name || !idDocument?.type || !idDocument?.data || !idDocument?.ocrText) {
+      sendJson(response, 400, { success: false, message: "A Tinampa-an address, confirmation, and ID document are required before registration." });
+      return true;
+    }
+
+    const normalizedOcrText = String(idDocument.ocrText).toLowerCase().replace(/[–—]/g, "-");
+    const idShowsTinampaan = normalizedOcrText.includes("tinampa-an") || normalizedOcrText.includes("tinampa an") || normalizedOcrText.includes("tinampaan");
+    if (!idShowsTinampaan) {
+      sendJson(response, 400, { success: false, message: "Registration cannot continue because the uploaded ID address does not match Barangay Tinampa-an." });
+      return true;
+    }
+
+    const allowedDocumentTypes = new Set(["image/jpeg", "image/png", "application/pdf"]);
+    const documentData = String(idDocument.data);
+    const documentSize = Math.ceil((documentData.length * 3) / 4);
+    const expectedDataPrefix = `data:${String(idDocument.type)};base64,`;
+    if (!allowedDocumentTypes.has(String(idDocument.type)) || !documentData.startsWith(expectedDataPrefix) || documentSize > 5 * 1024 * 1024) {
+      sendJson(response, 400, { success: false, message: "Upload a JPG, PNG, or PDF ID up to 5 MB." });
       return true;
     }
 
@@ -549,6 +566,10 @@ async function handleApi(request, response, pathname) {
         residentAddress: normalizedAddress,
         contactNumber: normalizedContactNumber || null,
         residencyConfirmed: true,
+        verificationStatus: "pending",
+        idDocumentName: String(idDocument.name).slice(0, 255),
+        idDocumentType: String(idDocument.type),
+        idDocumentData: documentData,
       });
       sendJson(response, 201, { success: true, user: toPublicUser(memoryStore.users.at(-1)) });
       return true;
@@ -557,14 +578,18 @@ async function handleApi(request, response, pathname) {
     try {
       await pool.query(
         `INSERT INTO users (
-          name, email, password_hash, role, resident_address, contact_number, residency_confirmed
-        ) VALUES (?, ?, ?, 'user', ?, ?, 1)`,
+          name, email, password_hash, role, resident_address, contact_number, residency_confirmed,
+          verification_status, id_document_name, id_document_type, id_document_data
+        ) VALUES (?, ?, ?, 'user', ?, ?, 1, 'pending', ?, ?, ?, ?)`,
         [
         String(name || "").trim(),
         normalizedEmail,
         hashPassword(String(password || "")),
         normalizedAddress,
         normalizedContactNumber || null,
+        String(idDocument.name).slice(0, 255),
+        String(idDocument.type),
+        documentData,
         ],
       );
       sendJson(response, 201, {
@@ -575,6 +600,7 @@ async function handleApi(request, response, pathname) {
           residentAddress: normalizedAddress,
           contactNumber: normalizedContactNumber,
           residencyConfirmed: true,
+          verificationStatus: "pending",
         },
       });
     } catch (error) {
@@ -685,7 +711,7 @@ async function handleApi(request, response, pathname) {
 
     await pool.query("UPDATE children SET assigned_bhw_name = ? WHERE assigned_bhw_email = ?", [normalizedName, normalizedEmail]);
 
-    const [rows] = await pool.query("SELECT name, email, designation, assigned_area, resident_address, contact_number, residency_confirmed FROM users WHERE email = ? AND role = 'bhw' LIMIT 1", [normalizedEmail]);
+    const [rows] = await pool.query("SELECT name, email, designation, assigned_area, resident_address, contact_number, residency_confirmed, verification_status FROM users WHERE email = ? AND role = 'bhw' LIMIT 1", [normalizedEmail]);
     sendJson(response, 200, { success: true, message: "Profile updated successfully.", user: toPublicUser(rows[0]) });
     return true;
   }
