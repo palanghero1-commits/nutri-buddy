@@ -19,6 +19,20 @@ create table if not exists public.users (
   created_at timestamptz not null default now()
 );
 
+-- Demo administrator account for initial access.
+-- Credentials: admin@nutritrack.gov.ph / admin123
+insert into public.users (name, email, password_hash, role, designation, residency_confirmed, verification_status)
+values (
+  'System Admin',
+  'admin@nutritrack.gov.ph',
+  '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9',
+  'admin',
+  'System Administrator',
+  false,
+  'approved'
+)
+on conflict (email) do nothing;
+
 create table if not exists public.children (
   id varchar(64) primary key,
   first_name varchar(100) not null,
@@ -80,4 +94,3 @@ alter table public.users enable row level security;
 alter table public.children enable row level security;
 alter table public.meal_entries enable row level security;
 alter table public.growth_records enable row level security;
-

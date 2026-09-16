@@ -82,3 +82,4 @@ CREATE TABLE IF NOT EXISTS growth_records (
   INDEX idx_growth_child (child_id),
   CONSTRAINT fk_growth_child FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

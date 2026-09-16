@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { createServer } from "node:http";
 import { createReadStream, existsSync, statSync } from "node:fs";
-import { extname, join, normalize, dirname } from "node:path";
+import { extname, join, normalize, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDbPool, dbConfig, ensureDatabaseSchema, hashPassword, seedDefaultUsers } from "./scripts/db-utils.mjs";
 
@@ -56,6 +56,7 @@ const seedGrowth = [
 
 let pool;
 let usingMemoryStore = false;
+let dataStoreReady;
 
 const memoryStore = {
   users: [
@@ -1019,8 +1020,10 @@ function sendFile(response, filePath) {
   createReadStream(filePath).pipe(response);
 }
 
-const server = createServer(async (request, response) => {
+export async function requestHandler(request, response) {
   try {
+    if (!dataStoreReady) dataStoreReady = initializeDataStore();
+    await dataStoreReady;
     const { pathname } = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
 
     if (pathname.startsWith("/api/")) {
@@ -1067,10 +1070,13 @@ const server = createServer(async (request, response) => {
     console.error(error);
     sendJson(response, 500, { message: "Server error.", detail: process.env.NODE_ENV === "development" ? error.message : undefined });
   }
-});
+}
 
-initializeDataStore()
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  dataStoreReady = initializeDataStore();
+  dataStoreReady
   .then(() => {
+    const server = createServer(requestHandler);
     server.listen(port, "0.0.0.0", () => {
       if (usingMemoryStore) {
         console.log(`Nutri-Track API running with in-memory data on port ${port}`);
@@ -1084,3 +1090,4 @@ initializeDataStore()
     console.error(error);
     process.exit(1);
   });
+}

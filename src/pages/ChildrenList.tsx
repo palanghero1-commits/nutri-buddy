@@ -1,5 +1,6 @@
-import { Edit, Plus, Search, Scale, Ruler, Activity } from "lucide-react";
+import { Edit, Plus, Search, Scale, Ruler, Activity, History } from "lucide-react";
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useNutriData } from "@/hooks/useNutriData";
 import { useToast } from "@/hooks/use-toast";
@@ -108,6 +109,7 @@ export default function ChildrenList() {
   const staffAssignedArea = staffRole === "bhw" && staffUser?.assignedArea ? staffUser.assignedArea : tinampaanAreas[0].area;
   const [form, setForm] = useState<ChildForm>(() => createEmptyForm(staffAssignedArea));
   const canManageRecords = staffRole === "admin" || staffRole === "bhw";
+  const childProfileBasePath = staffRole === "bhw" ? "/bhw/children" : "/admin/children";
   const availableAreas = useMemo(
     () => (staffRole === "bhw" && staffUser?.assignedArea ? tinampaanAreas.filter((area) => area.area === staffUser.assignedArea) : tinampaanAreas),
     [staffRole, staffUser?.assignedArea],
@@ -238,11 +240,16 @@ export default function ChildrenList() {
                   </p>
                 </div>
               </div>
-              {canManageRecords && (
-                <Button type="button" variant="outline" size="sm" onClick={() => openEditDialog(child)}>
-                  <Edit className="h-4 w-4" /> Edit
+              <div className="flex shrink-0 gap-2">
+                <Button type="button" asChild variant="outline" size="sm">
+                  <Link to={`${childProfileBasePath}/${child.id}`}><History className="h-4 w-4" /> History</Link>
                 </Button>
-              )}
+                {canManageRecords && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => openEditDialog(child)}>
+                    <Edit className="h-4 w-4" /> Edit
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3 mb-3">

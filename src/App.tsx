@@ -25,6 +25,7 @@ import AlertsPage from "@/pages/AlertsPage";
 import ReportsPage from "@/pages/ReportsPage";
 import BhwManagement from "@/pages/BhwManagement";
 import BhwProfile from "@/pages/BhwProfile";
+import StaffChildProfile from "@/pages/StaffChildProfile";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
               {/* Admin routes */}
               <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
               <Route path="/admin/children" element={<AdminRoute><ChildrenList /></AdminRoute>} />
+              <Route path="/admin/children/:childId" element={<AdminRoute><StaffChildProfile /></AdminRoute>} />
               <Route path="/admin/meals" element={<AdminRoute><MealTracker /></AdminRoute>} />
               <Route path="/admin/growth" element={<AdminRoute><GrowthMonitor /></AdminRoute>} />
               <Route path="/admin/alerts" element={<AdminRoute><AlertsPage /></AdminRoute>} />
@@ -57,6 +59,7 @@ const App = () => (
               <Route path="/bhw" element={<AdminRoute allowedRoles={["bhw"]}><Dashboard /></AdminRoute>} />
               <Route path="/bhw/profile" element={<AdminRoute allowedRoles={["bhw"]}><BhwProfile /></AdminRoute>} />
               <Route path="/bhw/children" element={<AdminRoute allowedRoles={["bhw"]}><ChildrenList /></AdminRoute>} />
+              <Route path="/bhw/children/:childId" element={<AdminRoute allowedRoles={["bhw"]}><StaffChildProfile /></AdminRoute>} />
               <Route path="/bhw/meals" element={<AdminRoute allowedRoles={["bhw"]}><MealTracker /></AdminRoute>} />
               <Route path="/bhw/growth" element={<AdminRoute allowedRoles={["bhw"]}><GrowthMonitor /></AdminRoute>} />
               <Route path="/bhw/alerts" element={<AdminRoute allowedRoles={["bhw"]}><AlertsPage /></AdminRoute>} />

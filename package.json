@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm:dev:api\" \"npm:dev:web\"",
-    "dev:api": "node server.mjs",
+    "dev:api": "node server-entry.mjs",
     "dev:web": "vite",
     "db:check": "node scripts/check-db.mjs",
     "db:reset-demo": "node scripts/reset-demo-data.mjs",
@@ -13,7 +13,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "node server.mjs",
+    "start": "node server-entry.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
