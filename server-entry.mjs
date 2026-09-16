@@ -6,7 +6,8 @@ import { resolve } from "node:path";
 dotenv.config({ path: process.env.DOTENV_CONFIG_PATH || ".env" });
 dotenv.config({ path: "local.env" });
 
-const useSupabase = String(process.env.DATA_PROVIDER || "mysql").toLowerCase() === "supabase";
+const defaultProvider = process.env.VERCEL ? "supabase" : "mysql";
+const useSupabase = String(process.env.DATA_PROVIDER || defaultProvider).toLowerCase() === "supabase";
 export const { requestHandler } = await import(useSupabase ? "./server-supabase.mjs" : "./server.mjs");
 const port = Number(process.env.API_PORT || process.env.PORT || 3001);
 
