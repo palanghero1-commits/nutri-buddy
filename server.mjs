@@ -121,13 +121,7 @@ async function initializeDataStore() {
   try {
     await initializeDatabase();
   } catch (error) {
-    if (process.env.NODE_ENV === "production") {
-      throw error;
-    }
-
-    usingMemoryStore = true;
-    console.warn("MySQL is unavailable. Starting API with in-memory demo data for this development session.");
-    console.warn(`MySQL error: ${error.code || error.message}`);
+    throw error;
   }
 }
 
@@ -526,14 +520,14 @@ async function handleApi(request, response, pathname) {
     const normalizedAddress = String(residentAddress || "").trim();
     const normalizedContactNumber = String(contactNumber || "").trim();
 
-    if (!normalizedAddress || residencyConfirmed !== true || faceVerified !== true || !idDocument?.name || !idDocument?.type || !idDocument?.data || !idDocument?.ocrText) {
+    if (!normalizedAddress || residencyConfirmed !== true || faceVerified !== true || !idDocument?.name || !idDocument?.type || !idDocument?.data) {
       sendJson(response, 400, { success: false, message: "A Tinampa-an address, confirmation, and ID document are required before registration." });
       return true;
     }
 
     const normalizedOcrText = String(idDocument.ocrText).toLowerCase().replace(/[–—]/g, "-");
     const idShowsTinampaan = normalizedOcrText.includes("tinampa-an") || normalizedOcrText.includes("tinampa an") || normalizedOcrText.includes("tinampaan");
-    if (!idShowsTinampaan) {
+    if (idDocument.ocrText && !idShowsTinampaan) {
       sendJson(response, 400, { success: false, message: "Registration cannot continue because the uploaded ID address does not match Barangay Tinampa-an." });
       return true;
     }
@@ -581,7 +575,7 @@ async function handleApi(request, response, pathname) {
         `INSERT INTO users (
           name, email, password_hash, role, resident_address, contact_number, residency_confirmed,
           verification_status, id_document_name, id_document_type, id_document_data
-        ) VALUES (?, ?, ?, 'user', ?, ?, 1, 'pending', ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, 'user', ?, ?, 1, 'pending', ?, ?, ?)`,
         [
         String(name || "").trim(),
         normalizedEmail,

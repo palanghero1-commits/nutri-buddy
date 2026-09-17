@@ -179,6 +179,8 @@ SEED_DEMO_NUTRITION_DATA=false
 
 Make sure MySQL is running before starting the app. The server will create the database and tables automatically using `utf8mb4` and InnoDB foreign keys.
 
+The API stops if MySQL is unavailable. It does not use temporary in-memory demo data, so local registrations are only saved when the MySQL connection is working.
+
 If your MySQL user is not allowed to create databases, create the database first:
 
 ```sql

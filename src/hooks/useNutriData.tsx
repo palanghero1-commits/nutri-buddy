@@ -4,9 +4,6 @@ import {
   getBhwForArea,
   getBhwForAddress,
   getChildAgeParts,
-  seedChildren,
-  seedGrowthData,
-  seedMealEntries,
   type Alert,
   type Child,
   type ChildStatus,
@@ -230,10 +227,10 @@ function deriveDashboardStats(children: Child[], meals: MealEntry[], alerts: Ale
 
 export function NutriDataProvider({ children }: { children: ReactNode }) {
   const { staffRole, staffUser } = useAuth();
-  const [childProfiles, setChildProfiles] = useState<Child[]>(() => loadStorage(STORAGE_KEYS.children, seedChildren));
-  const [mealEntries, setMealEntries] = useState<MealEntry[]>(() => loadStorage(STORAGE_KEYS.meals, seedMealEntries));
+  const [childProfiles, setChildProfiles] = useState<Child[]>(() => loadStorage(STORAGE_KEYS.children, []));
+  const [mealEntries, setMealEntries] = useState<MealEntry[]>(() => loadStorage(STORAGE_KEYS.meals, []));
   const [growthData, setGrowthData] = useState<Record<string, GrowthRecord[]>>(() =>
-    loadStorage(STORAGE_KEYS.growth, seedGrowthData),
+    loadStorage(STORAGE_KEYS.growth, {}),
   );
   const [isDemoFallbackActive, setIsDemoFallbackActive] = useState(false);
 
@@ -250,10 +247,10 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
       })
       .catch((error) => {
         if (!isActive) return;
-        console.warn("Production nutrition API unavailable. Falling back to demo seed data for this session.", error);
-        setChildProfiles(seedChildren);
-        setMealEntries(seedMealEntries);
-        setGrowthData(seedGrowthData);
+        console.error("Nutrition database unavailable.", error);
+        setChildProfiles([]);
+        setMealEntries([]);
+        setGrowthData({});
         setIsDemoFallbackActive(true);
       });
 

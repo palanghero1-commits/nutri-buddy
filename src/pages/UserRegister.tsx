@@ -8,6 +8,23 @@ import { useToast } from "@/hooks/use-toast";
 
 const FACE_MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model";
 
+function optimizeIdImage(dataUrl: string) {
+  return new Promise<string>((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      const maxDimension = 1600;
+      const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.72));
+    };
+    image.onerror = () => resolve(dataUrl);
+    image.src = dataUrl;
+  });
+}
+
 export default function UserRegister() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -27,13 +44,31 @@ export default function UserRegister() {
   const [livenessStep, setLivenessStep] = useState("Preparing live camera check...");
   const videoRef = useRef<HTMLVideoElement>(null);
   const faceStreamRef = useRef<MediaStream | null>(null);
+  const idDocumentRef = useRef<{ name: string; type: string; data: string; ocrText: string } | null>(null);
   const faceModelsLoadedRef = useRef(false);
+  const faceTrackingFrameRef = useRef<number | null>(null);
+  const faceTrackingActiveRef = useRef(false);
+  const faceTrackingBusyRef = useRef(false);
+  const [faceBox, setFaceBox] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   const [isVerified, setIsVerified] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { currentUser, registerUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const addressForSubmission = () => {
+    const address = residentAddress.trim();
+    if (address.toLowerCase().includes("tinampa-an") && address.toLowerCase().includes("cadiz")) return address;
+    return `${address}, Barangay Tinampa-an, Cadiz City`;
+  };
+
+  const extractAddressFromId = (ocrText: string) => {
+    const lines = ocrText.split(/\r?\n/).map((line) => line.replace(/\s+/g, " ").trim()).filter(Boolean);
+    const addressLine = lines.find((line) => /\b(purok|sitio|street|hacienda|brgy\.?|barangay)\b/i.test(line));
+    if (!addressLine) return "Barangay Tinampa-an, Cadiz City";
+    return addressLine.replace(/^(address|residential address)\s*[:#-]?\s*/i, "").split(/\b(?:barangay|brgy\.?)\b/i)[0].replace(/[,:;\s]+$/, "").trim() || "Barangay Tinampa-an, Cadiz City";
+  };
 
   if (currentUser) {
     return <Navigate to="/user" replace />;
@@ -42,10 +77,12 @@ export default function UserRegister() {
   const handleVerification = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!residentAddress.trim() || !residencyConfirmed || !idDocument || idCheckStatus !== "matched") {
+    if (!residentAddress.trim() || !residencyConfirmed || !idDocument || idCheckStatus !== "matched" || faceStatus !== "matched") {
       toast({
         title: "Verification needed",
-        description: idCheckStatus === "not-matched"
+        description: faceStatus !== "matched"
+          ? "Complete the face verification before continuing."
+          : idCheckStatus === "not-matched"
           ? "You cannot register because the ID address does not match Barangay Tinampa-an."
           : "Enter the address, confirm residency, and upload an ID that shows Barangay Tinampa-an.",
         variant: "destructive",
@@ -57,9 +94,35 @@ export default function UserRegister() {
   };
 
   const stopFaceCamera = () => {
+    faceTrackingActiveRef.current = false;
+    if (faceTrackingFrameRef.current !== null) cancelAnimationFrame(faceTrackingFrameRef.current);
+    faceTrackingFrameRef.current = null;
+    setFaceBox(null);
     faceStreamRef.current?.getTracks().forEach((track) => track.stop());
     faceStreamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
+  };
+
+  const trackFace = async () => {
+    if (!faceTrackingActiveRef.current || !videoRef.current || faceTrackingBusyRef.current) return;
+    faceTrackingBusyRef.current = true;
+    try {
+      const video = videoRef.current;
+      if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
+        const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.45 }));
+        if (detection) {
+          const { x, y, width, height } = detection.box;
+          setFaceBox({ left: 100 - ((x + width) / video.videoWidth) * 100, top: (y / video.videoHeight) * 100, width: (width / video.videoWidth) * 100, height: (height / video.videoHeight) * 100 });
+          setLivenessStep("Face detected - tracking your movement.");
+        } else {
+          setFaceBox(null);
+          setLivenessStep("Move into view and keep your face inside the frame.");
+        }
+      }
+    } finally {
+      faceTrackingBusyRef.current = false;
+      if (faceTrackingActiveRef.current) faceTrackingFrameRef.current = requestAnimationFrame(() => void trackFace());
+    }
   };
 
   const startFaceScan = async () => {
@@ -93,6 +156,8 @@ export default function UserRegister() {
       setFaceStatus("ready");
       setLivenessStep("Liveness check ready - keep your face inside the frame.");
       setFaceMessage("Position your face inside the frame, then capture.");
+      faceTrackingActiveRef.current = true;
+      void trackFace();
     } catch {
       stopFaceCamera();
       setFaceStatus("error");
@@ -109,15 +174,12 @@ export default function UserRegister() {
       setFaceStatus("checking");
       setLivenessStep("Reading the live face and checking liveness...");
       setFaceMessage("Comparing your live face with the ID photo...");
-      videoRef.current.style.transform = "none";
       const canvas = document.createElement("canvas");
       const sourceWidth = videoRef.current.videoWidth;
       const sourceHeight = videoRef.current.videoHeight;
-      const portraitWidth = Math.min(sourceWidth, Math.round(sourceHeight * 0.75));
-      const cropX = Math.max(0, Math.round((sourceWidth - portraitWidth) / 2));
-      canvas.width = portraitWidth;
+      canvas.width = sourceWidth;
       canvas.height = sourceHeight;
-      canvas.getContext("2d")?.drawImage(videoRef.current, cropX, 0, portraitWidth, sourceHeight, 0, 0, portraitWidth, sourceHeight);
+      canvas.getContext("2d")?.drawImage(videoRef.current, 0, 0, sourceWidth, sourceHeight);
       const selfieImage = await faceapi.fetchImage(canvas.toDataURL("image/jpeg", 0.9));
       const idImage = await faceapi.fetchImage(idDocument.data);
       const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
@@ -189,11 +251,11 @@ export default function UserRegister() {
     setIsLoading(true);
     setTimeout(async () => {
       const result = await registerUser(name, email, password, {
-        residentAddress: `${residentAddress.trim()}, Barangay Tinampa-an, Cadiz City`,
+        residentAddress: addressForSubmission(),
         contactNumber: contactNumber.trim(),
         residencyConfirmed,
         faceVerified: faceStatus === "matched",
-        idDocument,
+        idDocument: idDocumentRef.current || idDocument,
       });
 
       if (result.success) {
@@ -289,8 +351,11 @@ export default function UserRegister() {
 
             {(faceStatus === "loading" || faceStatus === "ready" || faceStatus === "checking") && (
               <div className="relative mx-auto mt-4 w-full max-w-xs overflow-hidden rounded-2xl border-2 border-primary/40 bg-muted p-1 shadow-[0_0_28px_rgba(37,99,235,0.16)]">
-                <video ref={videoRef} autoPlay muted playsInline className="aspect-[3/4] w-full object-cover" style={{ transform: "none", rotate: "0deg" }} />
-                <div className="pointer-events-none absolute inset-x-8 inset-y-7 rounded-[48%] border-2 border-primary/80 shadow-[0_0_0_999px_rgba(15,23,42,0.28)]" style={{ animation: "face-frame-pulse 2.2s ease-in-out infinite" }} />
+                <video ref={videoRef} autoPlay muted playsInline className="aspect-[3/4] w-full object-cover" style={{ transform: "scaleX(-1)", rotate: "0deg" }} />
+                <div
+                  className="pointer-events-none absolute rounded-[42%] border-2 border-primary shadow-[0_0_0_999px_rgba(15,23,42,0.28)] transition-all duration-150"
+                  style={faceBox ? { left: `${faceBox.left}%`, top: `${faceBox.top}%`, width: `${faceBox.width}%`, height: `${faceBox.height}%` } : { left: "20%", top: "12%", width: "60%", height: "76%", animation: "face-frame-pulse 2.2s ease-in-out infinite" }}
+                />
                 <div className="pointer-events-none absolute left-8 right-8 h-1 rounded-full bg-cyan-300 shadow-[0_0_14px_4px_rgba(34,211,238,0.8)]" style={{ animation: "face-scan-sweep 2.4s ease-in-out infinite" }} />
                 <div className="pointer-events-none absolute left-4 top-4 h-7 w-7 border-l-2 border-t-2 border-cyan-300" />
                 <div className="pointer-events-none absolute right-4 top-4 h-7 w-7 border-r-2 border-t-2 border-cyan-300" />
@@ -303,7 +368,7 @@ export default function UserRegister() {
             {faceStatus === "checking" && <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700" style={{ animation: "face-status-pulse 1.8s ease-in-out infinite" }}><span className="h-2 w-2 rounded-full bg-emerald-500" /> Please keep your face still while the live check is running.</div>}
 
             {faceStatus === "ready" && <button type="button" onClick={captureFace} className="mt-5 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">Read liveness and compare face</button>}
-            {faceStatus === "matched" && <button type="button" onClick={() => setFaceModalOpen(false)} className="mt-5 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">Continue to account details</button>}
+            {faceStatus === "matched" && <button type="button" onClick={() => { setFaceModalOpen(false); setIsVerified(false); }} className="mt-5 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">Review address and continue</button>}
             {(faceStatus === "not-matched" || faceStatus === "error") && <button type="button" onClick={() => { setFaceModalOpen(false); setFaceStatus("idle"); setFaceMessage(""); }} className="mt-5 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">Try face scan again</button>}
           </div>
         </div>
@@ -405,6 +470,7 @@ export default function UserRegister() {
                       setIdCheckStatus("checking");
                       setIdCheckModal("checking");
                       setIdCheckStep("Preparing your ID...");
+                      idDocumentRef.current = null;
                       setIdDocument(null);
                       try {
                         const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -418,10 +484,14 @@ export default function UserRegister() {
                         const result = await worker.recognize(dataUrl);
                         const ocrText = result.data.text;
                         await worker.terminate();
+                        const optimizedDataUrl = await optimizeIdImage(dataUrl);
                         setIdCheckStep("Checking the Barangay Tinampa-an address...");
                         const normalizedText = ocrText.toLowerCase().replace(/[–—]/g, "-");
                         const matched = normalizedText.includes("tinampa-an") || normalizedText.includes("tinampa an") || normalizedText.includes("tinampaan");
-                        setIdDocument({ name: file.name, type: file.type, data: dataUrl, ocrText });
+                        const verifiedDocument = { name: file.name, type: "image/jpeg", data: optimizedDataUrl, ocrText };
+                        idDocumentRef.current = verifiedDocument;
+                        setIdDocument(verifiedDocument);
+                        setResidentAddress(extractAddressFromId(ocrText));
                         setIdCheckStatus(matched ? "matched" : "not-matched");
                         setIdCheckModal(matched ? "matched" : "not-matched");
                         if (!matched) window.setTimeout(() => setIdCheckModal(null), 1800);
