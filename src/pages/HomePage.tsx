@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import { Leaf, UtensilsCrossed, TrendingUp, Bell, Shield, Heart, Users, ArrowRight, ChevronRight } from "lucide-react";
+import { Leaf, UtensilsCrossed, TrendingUp, Bell, Shield, Heart, Users, ArrowRight } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import type { Child, GrowthRecord, MealEntry } from "@/lib/mockData";
 
@@ -125,13 +125,13 @@ export default function HomePage() {
               to="/user/login"
               className="hidden rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-all hover:bg-muted sm:inline-flex"
             >
-              User Login
+              Sign In
             </Link>
             <Link
-              to="/admin/login"
+              to="/user/register"
               className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-all hover:opacity-90 active:scale-[0.97] sm:px-4"
             >
-              Admin Login
+              Sign Up
             </Link>
           </div>
         </div>
@@ -163,12 +163,6 @@ export default function HomePage() {
               >
                 Learn More <ArrowRight className="h-4 w-4" />
               </a>
-              <Link
-                to="/admin/login"
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-6 py-3 font-medium text-foreground transition-all hover:bg-muted active:scale-[0.97]"
-              >
-                Admin Portal <ChevronRight className="h-4 w-4" />
-              </Link>
             </div>
           </div>
           <div className="section-enter stagger-2">
