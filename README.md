@@ -196,8 +196,6 @@ VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Set `AUTH_SECRET` to a long random value in both local and deployment environment variables. It signs the backend session tokens used for role-based authorization.
-
 Run `supabase/schema.sql` in the Supabase SQL Editor to create the online tables. Never put the Supabase `service_role` key in frontend variables or commit it to the repository.
 
 ### 4. Check MySQL connection and schema

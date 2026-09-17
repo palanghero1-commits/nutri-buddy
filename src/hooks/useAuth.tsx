@@ -60,12 +60,7 @@ type AuthResponse = {
   success: boolean;
   message?: string;
   user?: UserSession;
-  token?: string;
 };
-
-function saveAuthToken(token?: string) {
-  if (token) sessionStorage.setItem("nutri-auth-token", token);
-}
 
 function readUserSession() {
   const stored = sessionStorage.getItem(USER_SESSION_KEY);
@@ -109,7 +104,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       setStaffRole("admin");
-      saveAuthToken(result.token);
       setStaffUser(result.user ?? null);
       sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
       sessionStorage.setItem(STAFF_ROLE_SESSION_KEY, "admin");
@@ -130,7 +124,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       setStaffRole("bhw");
-      saveAuthToken(result.token);
       setStaffUser(result.user ?? null);
       sessionStorage.removeItem(ADMIN_SESSION_KEY);
       sessionStorage.setItem(STAFF_ROLE_SESSION_KEY, "bhw");
@@ -153,7 +146,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!result.user) return false;
 
       setCurrentUser(result.user);
-      saveAuthToken(result.token);
       sessionStorage.setItem(USER_SESSION_KEY, JSON.stringify(result.user));
       setStaffRole(null);
       setStaffUser(null);
@@ -183,7 +175,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setCurrentUser(result.user);
-      saveAuthToken(result.token);
       sessionStorage.setItem(USER_SESSION_KEY, JSON.stringify(result.user));
       setStaffRole(null);
       setStaffUser(null);
@@ -323,7 +314,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(STAFF_ROLE_SESSION_KEY);
     sessionStorage.removeItem(STAFF_USER_SESSION_KEY);
     sessionStorage.removeItem(USER_SESSION_KEY);
-    sessionStorage.removeItem("nutri-auth-token");
   };
 
   return <AuthContext.Provider value={{ isAdmin, staffRole, staffUser, currentUser, login, loginBhw, loginUser, registerUser, updateUserProfile, updateStaffProfile, resetPassword, deleteAccount, logout }}>{children}</AuthContext.Provider>;
