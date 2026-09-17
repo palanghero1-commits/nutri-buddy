@@ -229,7 +229,7 @@ function deriveDashboardStats(children: Child[], meals: MealEntry[], alerts: Ale
 }
 
 export function NutriDataProvider({ children }: { children: ReactNode }) {
-  const { staffRole, staffUser } = useAuth();
+  const { staffRole, staffUser, currentUser } = useAuth();
   const [childProfiles, setChildProfiles] = useState<Child[]>(() => loadStorage(STORAGE_KEYS.children, seedChildren));
   const [mealEntries, setMealEntries] = useState<MealEntry[]>(() => loadStorage(STORAGE_KEYS.meals, seedMealEntries));
   const [growthData, setGrowthData] = useState<Record<string, GrowthRecord[]>>(() =>
@@ -239,6 +239,8 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isActive = true;
+
+    if (!staffRole && !currentUser) return () => { isActive = false; };
 
     apiRequest<NutritionResponse>("/api/nutrition")
       .then((data) => {
@@ -260,7 +262,7 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [currentUser?.email, staffRole, staffUser?.email]);
   const childrenWithCurrentAges = useMemo(
     () =>
       childProfiles.map((child) => {
