@@ -90,7 +90,22 @@ create table if not exists public.growth_records (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.nutrition_action_plans (
+  child_id varchar(64) primary key references public.children(id) on delete cascade,
+  severity varchar(20) not null check (severity in ('Information', 'Monitor', 'Priority follow-up')),
+  summary text not null,
+  recommendations jsonb not null,
+  follow_up_date date not null,
+  target_summary text not null,
+  bhw_notes text,
+  completed_at date,
+  created_by_email varchar(190),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.users enable row level security;
 alter table public.children enable row level security;
 alter table public.meal_entries enable row level security;
 alter table public.growth_records enable row level security;
+alter table public.nutrition_action_plans enable row level security;

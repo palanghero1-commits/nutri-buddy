@@ -42,6 +42,7 @@ export default function UserRegister() {
   const [faceMessage, setFaceMessage] = useState("");
   const [faceModalOpen, setFaceModalOpen] = useState(false);
   const [livenessStep, setLivenessStep] = useState("Preparing live camera check...");
+  const [faceScanStep, setFaceScanStep] = useState(1);
   const videoRef = useRef<HTMLVideoElement>(null);
   const faceStreamRef = useRef<MediaStream | null>(null);
   const idDocumentRef = useRef<{ name: string; type: string; data: string; ocrText: string } | null>(null);
@@ -134,6 +135,7 @@ export default function UserRegister() {
     try {
       setFaceModalOpen(true);
       setFaceStatus("loading");
+      setFaceScanStep(1);
       setLivenessStep("Loading face verification models...");
       setFaceMessage("Loading face verification models...");
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -154,6 +156,7 @@ export default function UserRegister() {
         await videoRef.current.play();
       }
       setFaceStatus("ready");
+      setFaceScanStep(2);
       setLivenessStep("Liveness check ready - keep your face inside the frame.");
       setFaceMessage("Position your face inside the frame, then capture.");
       faceTrackingActiveRef.current = true;
@@ -169,9 +172,15 @@ export default function UserRegister() {
 
   const captureFace = async () => {
     if (!videoRef.current || !idDocument) return;
+    if (!faceBox) {
+      setLivenessStep("No face detected yet - move into the frame before scanning.");
+      setFaceMessage("Keep your face centered inside the frame so the system can scan it.");
+      return;
+    }
 
     try {
       setFaceStatus("checking");
+      setFaceScanStep(3);
       setLivenessStep("Reading the live face and checking liveness...");
       setFaceMessage("Comparing your live face with the ID photo...");
       const canvas = document.createElement("canvas");
@@ -187,6 +196,7 @@ export default function UserRegister() {
         faceapi.detectSingleFace(idImage, options).withFaceLandmarks().withFaceDescriptor(),
         faceapi.detectSingleFace(selfieImage, options).withFaceLandmarks().withFaceDescriptor(),
       ]);
+      setFaceScanStep(4);
       stopFaceCamera();
 
       if (!idFace || !selfieFace) {
@@ -199,11 +209,13 @@ export default function UserRegister() {
       const distance = faceapi.euclideanDistance(idFace.descriptor, selfieFace.descriptor);
       const matched = distance <= 0.6;
       setFaceStatus(matched ? "matched" : "not-matched");
+      setFaceScanStep(matched ? 5 : 4);
       setLivenessStep(matched ? "Liveness and face match completed." : "Liveness completed, but the face did not match.");
       setFaceMessage(matched ? "Face matched successfully." : "The live face does not match the ID photo.");
     } catch {
       stopFaceCamera();
       setFaceStatus("error");
+      setFaceScanStep(1);
       setLivenessStep("Liveness check failed.");
       setFaceMessage("Face verification failed. Please try again with better lighting.");
     }
@@ -349,6 +361,30 @@ export default function UserRegister() {
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">{faceStatus === "matched" ? "Your live face matches the photo on the uploaded ID." : faceStatus === "not-matched" ? faceMessage : faceStatus === "error" ? faceMessage : livenessStep}</p>
 
+            <div className="mt-5 rounded-xl border border-border/70 bg-muted/40 p-3 text-left">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Face scan progress</p>
+              <div className="grid grid-cols-4 gap-2">
+                {["Start camera", "Position face", "Live scan", "Compare ID"].map((label, index) => {
+                  const step = index + 1;
+                  const complete = faceScanStep > step || (step === 4 && faceStatus === "matched");
+                  const active = faceScanStep === step && faceStatus !== "matched" && faceStatus !== "not-matched" && faceStatus !== "error";
+                  return (
+                    <div key={label} className="min-w-0">
+                      <div className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${complete ? "bg-emerald-100 text-emerald-700" : active ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}>
+                        {complete ? "✓" : step}
+                      </div>
+                      <p className={`mt-1 text-center text-[10px] leading-tight ${active || complete ? "font-medium text-foreground" : "text-muted-foreground"}`}>{label}</p>
+                    </div>
+                  );
+                })}
+              </div>
+              {(faceStatus === "loading" || faceStatus === "ready" || faceStatus === "checking") && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {faceStatus === "loading" ? "The system is preparing the camera and face scanner." : faceStatus === "ready" ? (faceBox ? "Face detected. Keep your head centered and press the scan button." : "Look at the camera and move your face inside the frame.") : faceScanStep === 4 ? "Face captured. Comparing it with the photo on your ID..." : "Reading your live face. Keep still while the scan runs..."}
+                </p>
+              )}
+            </div>
+
             {(faceStatus === "loading" || faceStatus === "ready" || faceStatus === "checking") && (
               <div className="relative mx-auto mt-4 w-full max-w-xs overflow-hidden rounded-2xl border-2 border-primary/40 bg-muted p-1 shadow-[0_0_28px_rgba(37,99,235,0.16)]">
                 <video ref={videoRef} autoPlay muted playsInline className="aspect-[3/4] w-full object-cover" style={{ transform: "scaleX(-1)", rotate: "0deg" }} />
@@ -367,9 +403,9 @@ export default function UserRegister() {
             {faceStatus === "loading" && <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full w-2/3 rounded-full bg-primary animate-pulse" /></div>}
             {faceStatus === "checking" && <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700" style={{ animation: "face-status-pulse 1.8s ease-in-out infinite" }}><span className="h-2 w-2 rounded-full bg-emerald-500" /> Please keep your face still while the live check is running.</div>}
 
-            {faceStatus === "ready" && <button type="button" onClick={captureFace} className="mt-5 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">Read liveness and compare face</button>}
+            {faceStatus === "ready" && <button type="button" onClick={captureFace} disabled={!faceBox} className="mt-5 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">{faceBox ? "Start live face scan" : "Waiting for face..."}</button>}
             {faceStatus === "matched" && <button type="button" onClick={() => { setFaceModalOpen(false); setIsVerified(false); }} className="mt-5 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">Review address and continue</button>}
-            {(faceStatus === "not-matched" || faceStatus === "error") && <button type="button" onClick={() => { setFaceModalOpen(false); setFaceStatus("idle"); setFaceMessage(""); }} className="mt-5 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">Try face scan again</button>}
+            {(faceStatus === "not-matched" || faceStatus === "error") && <button type="button" onClick={() => { setFaceModalOpen(false); setFaceStatus("idle"); setFaceScanStep(1); setFaceMessage(""); }} className="mt-5 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">Try face scan again</button>}
           </div>
         </div>
       )}

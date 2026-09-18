@@ -17,7 +17,7 @@ try {
     [dbConfig.database],
   );
 
-  const requiredTables = ["children", "growth_records", "meal_entries", "users"];
+  const requiredTables = ["children", "growth_records", "meal_entries", "nutrition_action_plans", "users"];
   const existingTables = new Set(tableRows.map((row) => row.tableName));
   const missingTables = requiredTables.filter((tableName) => !existingTables.has(tableName));
 
@@ -113,7 +113,8 @@ try {
       (SELECT COUNT(*) FROM users) AS users,
       (SELECT COUNT(*) FROM children) AS children,
       (SELECT COUNT(*) FROM meal_entries) AS mealEntries,
-      (SELECT COUNT(*) FROM growth_records) AS growthRecords`,
+      (SELECT COUNT(*) FROM growth_records) AS growthRecords,
+      (SELECT COUNT(*) FROM nutrition_action_plans) AS actionPlans`,
   );
 
   console.log(`MySQL connection OK: ${versionRow.version}`);
@@ -121,7 +122,7 @@ try {
   console.log(`Tables OK: ${requiredTables.join(", ")}`);
   console.log("Write/read/delete check OK.");
   console.log(
-    `Current rows: users=${counts.users}, children=${counts.children}, meal_entries=${counts.mealEntries}, growth_records=${counts.growthRecords}`,
+    `Current rows: users=${counts.users}, children=${counts.children}, meal_entries=${counts.mealEntries}, growth_records=${counts.growthRecords}, action_plans=${counts.actionPlans}`,
   );
 } catch (error) {
   try {
@@ -133,4 +134,3 @@ try {
 } finally {
   await connection.end();
 }
-

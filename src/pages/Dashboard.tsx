@@ -6,10 +6,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { formatChildAge } from "@/lib/mockData";
 
 export default function Dashboard() {
-  const { dashboardStats, children, alerts } = useNutriData();
+  const { dashboardStats, children, alerts, actionPlans } = useNutriData();
   const { staffRole, staffUser } = useAuth();
   const basePath = staffRole === "bhw" ? "/bhw" : "/admin";
   const unreadAlerts = alerts.filter((a) => !a.read);
+  const plansNeedingFollowUp = Object.values(actionPlans).filter((plan) => !plan.completedAt && (plan.severity === "Priority follow-up" || plan.overdue));
   const statusData = [
     { name: "Normal", value: dashboardStats.normalCount, color: "#192853" },
     { name: "Underweight", value: dashboardStats.underweightCount, color: "#FFE14E" },
@@ -49,6 +50,11 @@ export default function Dashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="stat-card mt-4 flex flex-col gap-3 border-l-4 border-l-primary sm:flex-row sm:items-center sm:justify-between">
+        <div><p className="text-sm text-muted-foreground">Action Plans Needing Follow-up</p><p className="mt-1 text-2xl font-bold">{plansNeedingFollowUp.length}</p><p className="mt-1 text-xs text-muted-foreground">Priority or overdue plans requiring BHW review.</p></div>
+        <Link to={`${basePath}/alerts`} className="w-fit rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted">Review action plans</Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">

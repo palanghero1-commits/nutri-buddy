@@ -30,7 +30,7 @@ interface AuthContextType {
   ) => Promise<{ success: boolean; message: string }>;
   updateUserProfile: (profile: { name: string; residentAddress: string; contactNumber?: string }) => Promise<{ success: boolean; message: string }>;
   updateStaffProfile: (profile: { name: string; contactNumber?: string }) => Promise<{ success: boolean; message: string }>;
-  resetPassword: (email: string, currentPassword: string, newPassword: string, role: "bhw" | "user") => Promise<{ success: boolean; message: string }>;
+  resetPassword: (email: string, currentPassword: string, newPassword: string, role: "admin" | "bhw" | "user") => Promise<{ success: boolean; message: string }>;
   deleteAccount: (currentPassword: string, role: "bhw" | "user") => Promise<{ success: boolean; message: string }>;
   logout: () => void;
 }
@@ -254,7 +254,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const resetPassword = async (email: string, currentPassword: string, newPassword: string, role: "bhw" | "user") => {
+  const resetPassword = async (email: string, currentPassword: string, newPassword: string, role: "admin" | "bhw" | "user") => {
     if (role === "admin") {
       return {
         success: false,

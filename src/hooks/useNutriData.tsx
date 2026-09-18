@@ -12,6 +12,7 @@ import {
 } from "@/lib/mockData";
 import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import { buildNutritionActionPlan, type ActionPlanRecord, type ActionPlanUpdate } from "@/lib/actionPlan";
 
 type AddChildInput = {
   firstName: string;
@@ -64,18 +65,21 @@ type NutriDataContextType = {
   children: Child[];
   mealEntries: MealEntry[];
   growthData: Record<string, GrowthRecord[]>;
+  actionPlans: Record<string, ActionPlanRecord & { overdue: boolean }>;
   alerts: Alert[];
   dashboardStats: DashboardStats;
   addChild: (input: AddChildInput) => Promise<void>;
   updateChild: (childId: string, input: AddChildInput) => Promise<void>;
   addMealEntry: (input: AddMealInput) => Promise<void>;
   addGrowthRecord: (input: AddGrowthRecordInput) => Promise<void>;
+  updateActionPlan: (childId: string, update: ActionPlanUpdate) => Promise<void>;
 };
 
 type NutritionResponse = {
   children: Child[];
   mealEntries: MealEntry[];
   growthData: Record<string, GrowthRecord[]>;
+  actionPlans?: ActionPlanRecord[];
 };
 
 const STORAGE_KEYS = {
@@ -164,8 +168,8 @@ function getLatestMealDate(entries: MealEntry[]) {
     .at(-1)!;
 }
 
-function deriveAlerts(children: Child[]): Alert[] {
-  return children
+function deriveAlerts(children: Child[], actionPlans: Record<string, ActionPlanRecord & { overdue: boolean }>): Alert[] {
+  const statusAlerts = children
     .map((child) => {
       const base = {
         id: `alert-${child.id}`,
@@ -209,6 +213,26 @@ function deriveAlerts(children: Child[]): Alert[] {
       };
     })
     .sort((a, b) => b.date.localeCompare(a.date));
+
+  const planAlerts = children
+    .map((child) => {
+      const plan = actionPlans[child.id];
+      if (!plan || plan.completedAt || (plan.severity !== "Priority follow-up" && !plan.overdue)) return null;
+      return {
+        id: `action-plan-${child.id}`,
+        childId: child.id,
+        childName: child.name,
+        type: plan.overdue ? "critical" as const : "warning" as const,
+        message: plan.overdue
+          ? `Action plan follow-up is overdue since ${plan.followUpDate}. Review the child record and update the plan.`
+          : `${plan.summary} Follow-up is scheduled for ${plan.followUpDate}.`,
+        date: plan.followUpDate,
+        read: false,
+      };
+    })
+    .filter(Boolean) as Alert[];
+
+  return [...planAlerts, ...statusAlerts].sort((a, b) => b.date.localeCompare(a.date));
 }
 
 function deriveDashboardStats(children: Child[], meals: MealEntry[], alerts: Alert[]): DashboardStats {
@@ -232,6 +256,7 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
   const [growthData, setGrowthData] = useState<Record<string, GrowthRecord[]>>(() =>
     loadStorage(STORAGE_KEYS.growth, {}),
   );
+  const [actionPlanRecords, setActionPlanRecords] = useState<Record<string, ActionPlanRecord>>({});
   const [isDemoFallbackActive, setIsDemoFallbackActive] = useState(false);
 
   useEffect(() => {
@@ -243,6 +268,7 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
         setChildProfiles(data.children);
         setMealEntries(data.mealEntries);
         setGrowthData(data.growthData);
+        setActionPlanRecords(Object.fromEntries((data.actionPlans ?? []).map((plan) => [plan.childId, plan])));
         setIsDemoFallbackActive(false);
       })
       .catch((error) => {
@@ -322,6 +348,11 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
     const visibleChildIds = new Set(visibleChildren.map((child) => child.id));
     return Object.fromEntries(Object.entries(growthData).filter(([childId]) => visibleChildIds.has(childId)));
   }, [growthData, staffRole, visibleChildren]);
+
+  const actionPlans = useMemo(
+    () => Object.fromEntries(visibleChildren.map((child) => [child.id, buildNutritionActionPlan(child, visibleMealEntries.filter((meal) => meal.childId === child.id), visibleGrowthData[child.id] ?? [], actionPlanRecords[child.id])])),
+    [actionPlanRecords, visibleChildren, visibleGrowthData, visibleMealEntries],
+  );
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.children, JSON.stringify(childProfiles));
@@ -524,7 +555,30 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const alerts = useMemo(() => deriveAlerts(visibleChildren), [visibleChildren]);
+  const updateActionPlan = async (childId: string, update: ActionPlanUpdate) => {
+    const currentPlan = actionPlans[childId];
+    if (!currentPlan) return;
+
+    const nextPlan = {
+      ...currentPlan,
+      ...update,
+      childId,
+      completedAt: update.completedAt === null ? undefined : update.completedAt ?? currentPlan.completedAt,
+    };
+    setActionPlanRecords((current) => ({ ...current, [childId]: nextPlan }));
+
+    try {
+      const result = await apiRequest<{ plan: ActionPlanRecord }>(`/api/children/${encodeURIComponent(childId)}/action-plan`, {
+        method: "PUT",
+        body: JSON.stringify({ plan: nextPlan }),
+      });
+      setActionPlanRecords((current) => ({ ...current, [childId]: result.plan }));
+    } catch (error) {
+      console.error("Unable to save nutrition action plan.", error);
+    }
+  };
+
+  const alerts = useMemo(() => deriveAlerts(visibleChildren, actionPlans), [actionPlans, visibleChildren]);
   const dashboardStats = useMemo(
     () => deriveDashboardStats(visibleChildren, visibleMealEntries, alerts),
     [alerts, visibleChildren, visibleMealEntries],
@@ -536,12 +590,14 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
         children: visibleChildren,
         mealEntries: visibleMealEntries,
         growthData: visibleGrowthData,
+        actionPlans,
         alerts,
         dashboardStats,
         addChild,
         updateChild,
         addMealEntry,
         addGrowthRecord,
+        updateActionPlan,
       }}
     >
       {isDemoFallbackActive && (

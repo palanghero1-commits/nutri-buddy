@@ -109,6 +109,7 @@ const memoryStore = {
     records[childId].push({ date, weight, height });
     return records;
   }, {}),
+  actionPlans: {},
 };
 
 async function initializeDatabase() {
@@ -223,6 +224,20 @@ function toGrowth(row) {
   };
 }
 
+function toActionPlan(row) {
+  return {
+    childId: row.child_id,
+    severity: row.severity,
+    summary: row.summary,
+    recommendations: typeof row.recommendations === "string" ? JSON.parse(row.recommendations) : row.recommendations,
+    followUpDate: formatDate(row.follow_up_date),
+    targetSummary: row.target_summary,
+    bhwNotes: row.bhw_notes || "",
+    completedAt: row.completed_at ? formatDate(row.completed_at) : undefined,
+    updatedAt: row.updated_at ? formatDate(row.updated_at) : undefined,
+  };
+}
+
 function isPositiveNumber(value) {
   return Number.isFinite(Number(value)) && Number(value) > 0;
 }
@@ -249,12 +264,14 @@ async function getNutritionData() {
       children: memoryStore.children,
       mealEntries: memoryStore.mealEntries,
       growthData: memoryStore.growthData,
+      actionPlans: Object.values(memoryStore.actionPlans),
     };
   }
 
   const [childRows] = await pool.query("SELECT * FROM children ORDER BY created_at DESC, id DESC");
   const [mealRows] = await pool.query("SELECT * FROM meal_entries ORDER BY date_value DESC, created_at DESC");
   const [growthRows] = await pool.query("SELECT * FROM growth_records ORDER BY date_value ASC, id ASC");
+  const [actionPlanRows] = await pool.query("SELECT * FROM nutrition_action_plans ORDER BY updated_at DESC");
 
   const growthData = {};
   for (const row of growthRows) {
@@ -266,6 +283,7 @@ async function getNutritionData() {
     children: childRows.map(toChild),
     mealEntries: mealRows.map(toMeal),
     growthData,
+    actionPlans: actionPlanRows.map(toActionPlan),
   };
 }
 
@@ -860,6 +878,52 @@ async function handleApi(request, response, pathname) {
       ]);
     }
     sendJson(response, 201, { child });
+    return true;
+  }
+
+  const actionPlanMatch = pathname.match(/^\/api\/children\/([^/]+)\/action-plan$/);
+  if (request.method === "PUT" && actionPlanMatch) {
+    const childId = decodeURIComponent(actionPlanMatch[1]);
+    const { plan } = await readRequestBody(request);
+    if (!plan || plan.childId !== childId || !plan.severity || !plan.summary || !plan.followUpDate || !plan.targetSummary) {
+      sendJson(response, 400, { message: "A complete action plan is required." });
+      return true;
+    }
+
+    const normalizedPlan = {
+      childId,
+      severity: plan.severity,
+      summary: String(plan.summary),
+      recommendations: Array.isArray(plan.recommendations) ? plan.recommendations : [],
+      followUpDate: String(plan.followUpDate).slice(0, 10),
+      targetSummary: String(plan.targetSummary),
+      bhwNotes: String(plan.bhwNotes || ""),
+      completedAt: plan.completedAt ? String(plan.completedAt).slice(0, 10) : undefined,
+      updatedAt: new Date().toISOString().slice(0, 10),
+    };
+
+    if (usingMemoryStore) {
+      if (!memoryStore.children.some((child) => child.id === childId)) {
+        sendJson(response, 404, { message: "Child record not found." });
+        return true;
+      }
+      memoryStore.actionPlans[childId] = normalizedPlan;
+      sendJson(response, 200, { plan: normalizedPlan });
+      return true;
+    }
+
+    await pool.query(
+      `INSERT INTO nutrition_action_plans
+        (child_id, severity, summary, recommendations, follow_up_date, target_summary, bhw_notes, completed_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+        severity = VALUES(severity), summary = VALUES(summary), recommendations = VALUES(recommendations),
+        follow_up_date = VALUES(follow_up_date), target_summary = VALUES(target_summary),
+        bhw_notes = VALUES(bhw_notes), completed_at = VALUES(completed_at)`,
+      [childId, normalizedPlan.severity, normalizedPlan.summary, JSON.stringify(normalizedPlan.recommendations), normalizedPlan.followUpDate, normalizedPlan.targetSummary, normalizedPlan.bhwNotes, normalizedPlan.completedAt || null],
+    );
+    const [rows] = await pool.query("SELECT * FROM nutrition_action_plans WHERE child_id = ? LIMIT 1", [childId]);
+    sendJson(response, 200, { plan: toActionPlan(rows[0]) });
     return true;
   }
 

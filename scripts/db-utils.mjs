@@ -39,7 +39,6 @@ export const schemaStatements = [
     id_document_data LONGTEXT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
-
   `CREATE TABLE IF NOT EXISTS children (
     id VARCHAR(64) PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,
@@ -100,6 +99,22 @@ export const schemaStatements = [
     INDEX idx_growth_child (child_id),
     CONSTRAINT fk_growth_child FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
+  `CREATE TABLE IF NOT EXISTS nutrition_action_plans (
+    child_id VARCHAR(64) PRIMARY KEY,
+    severity ENUM('Information', 'Monitor', 'Priority follow-up') NOT NULL,
+    summary TEXT NOT NULL,
+    recommendations JSON NOT NULL,
+    follow_up_date DATE NOT NULL,
+    target_summary TEXT NOT NULL,
+    bhw_notes TEXT NULL,
+    completed_at DATE NULL,
+    created_by_email VARCHAR(190) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_action_plan_child FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+
 ];
 
 export function hashPassword(password) {
@@ -335,4 +350,3 @@ export async function seedDefaultUsers(connectionOrPool) {
     ],
   );
 }
-
