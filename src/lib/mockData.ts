@@ -9,6 +9,11 @@ export const tinampaanAreas = [
 export type TinampaanArea = (typeof tinampaanAreas)[number]["area"];
 export type GuardianType = "Mother" | "Father" | "Aunt" | "Uncle" | "Grandmother" | "Grandfather";
 
+/** Normalize free-text values entered through the nutrition forms. */
+export function normalizeDataEncoding(value: string) {
+  return value.trim().toUpperCase();
+}
+
 export interface GuardianAddress {
   purok: string;
   hacienda: string;

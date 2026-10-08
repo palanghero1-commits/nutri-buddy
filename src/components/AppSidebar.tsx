@@ -9,6 +9,7 @@ import {
   Bell,
   FileText,
   UserCog,
+  UsersRound,
   ChevronLeft,
   ChevronRight,
   Leaf,
@@ -24,6 +25,7 @@ export const navItems = [
   { icon: Bell, label: "Alerts", path: "/alerts", roles: ["admin", "bhw"] },
   { icon: FileText, label: "Reports", path: "/reports", roles: ["admin", "bhw"] },
   { icon: UserCog, label: "BHW Management", path: "/bhws", roles: ["admin"] },
+  { icon: UsersRound, label: "Guardians", path: "/guardians", roles: ["admin"] },
 ];
 
 interface SidebarContentProps {
@@ -57,9 +59,7 @@ function SidebarContent({
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary">
           <Leaf className="h-5 w-5 text-primary-foreground" />
         </div>
-        {!collapsed && (
-          <span className="text-lg font-bold tracking-tight text-sidebar-foreground">{portalLabel}</span>
-        )}
+        {!collapsed && <div className="min-w-0"><p className="truncate text-lg font-bold tracking-tight text-sidebar-foreground">Nutri-Track</p><p className="truncate text-xs text-white/60">Child Nutrition Tracker</p></div>}
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-4">
@@ -73,7 +73,7 @@ function SidebarContent({
               onClick={onNavigate}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 ${
                 active
-                  ? "bg-sidebar-accent text-[#FFE14E]"
+                    ? "bg-gradient-to-r from-[#2e5eab] to-[#29477f] text-white shadow-sm"
                   : "text-white hover:bg-sidebar-accent/50 hover:text-white"
               }`}
             >

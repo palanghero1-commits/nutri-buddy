@@ -83,9 +83,7 @@ export default function UserMealsPage() {
                 Review meal entries submitted from your account.
               </p>
             </div>
-            <Button onClick={() => setIsMealDialogOpen(true)} disabled={myChildren.length === 0}>
-              Log Meal
-            </Button>
+            <span className="rounded-lg bg-muted px-3 py-2 text-xs font-medium text-muted-foreground">BHW-managed records</span>
           </div>
         </section>
 
@@ -113,7 +111,7 @@ export default function UserMealsPage() {
                       <p className="mt-2 text-sm text-muted-foreground">{meal.foods.join(", ")}</p>
                     </div>
                     <div className="text-sm sm:text-right">
-                      <p className="font-bold text-primary">{meal.calories} kcal</p>
+                      <p className="font-bold text-primary">{meal.calories} kcal (estimated)</p>
                       <p className="mt-1 text-xs text-muted-foreground">{meal.date}</p>
                       <p className="mt-2 text-xs text-muted-foreground">
                         Protein {meal.protein}g - Carbs {meal.carbs}g - Fat {meal.fat}g
@@ -182,10 +180,6 @@ export default function UserMealsPage() {
                   onChange={(event) => setMealForm((current) => ({ ...current, foods: event.target.value }))}
                   className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
                 />
-              </label>
-              <label className="text-sm text-foreground">
-                Calories
-                <input required min="0" type="number" value={mealForm.calories} onChange={(event) => setMealForm((current) => ({ ...current, calories: event.target.value }))} className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5" />
               </label>
               <label className="text-sm text-foreground">
                 Protein (g)

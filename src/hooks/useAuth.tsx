@@ -39,6 +39,7 @@ const ADMIN_SESSION_KEY = "nutri-admin";
 const STAFF_ROLE_SESSION_KEY = "nutri-staff-role";
 const STAFF_USER_SESSION_KEY = "nutri-staff-user";
 const USER_SESSION_KEY = "nutri-user";
+const AUTH_TOKEN_KEY = "nutri-auth-token";
 
 const AuthContext = createContext<AuthContextType>({
   isAdmin: false,
@@ -60,7 +61,13 @@ type AuthResponse = {
   success: boolean;
   message?: string;
   user?: UserSession;
+  sessionToken?: string;
 };
+
+function storeAuthToken(token?: string) {
+  if (token) sessionStorage.setItem(AUTH_TOKEN_KEY, token);
+  else sessionStorage.removeItem(AUTH_TOKEN_KEY);
+}
 
 function readUserSession() {
   const stored = sessionStorage.getItem(USER_SESSION_KEY);
@@ -104,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       setStaffRole("admin");
+      storeAuthToken(result.sessionToken);
       setStaffUser(result.user ?? null);
       sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
       sessionStorage.setItem(STAFF_ROLE_SESSION_KEY, "admin");
@@ -124,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       setStaffRole("bhw");
+      storeAuthToken(result.sessionToken);
       setStaffUser(result.user ?? null);
       sessionStorage.removeItem(ADMIN_SESSION_KEY);
       sessionStorage.setItem(STAFF_ROLE_SESSION_KEY, "bhw");
@@ -146,6 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!result.user) return false;
 
       setCurrentUser(result.user);
+      storeAuthToken(result.sessionToken);
       sessionStorage.setItem(USER_SESSION_KEY, JSON.stringify(result.user));
       setStaffRole(null);
       setStaffUser(null);
@@ -175,6 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setCurrentUser(result.user);
+      storeAuthToken(result.sessionToken);
       sessionStorage.setItem(USER_SESSION_KEY, JSON.stringify(result.user));
       setStaffRole(null);
       setStaffUser(null);
@@ -314,6 +325,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(STAFF_ROLE_SESSION_KEY);
     sessionStorage.removeItem(STAFF_USER_SESSION_KEY);
     sessionStorage.removeItem(USER_SESSION_KEY);
+    sessionStorage.removeItem(AUTH_TOKEN_KEY);
   };
 
   return <AuthContext.Provider value={{ isAdmin, staffRole, staffUser, currentUser, login, loginBhw, loginUser, registerUser, updateUserProfile, updateStaffProfile, resetPassword, deleteAccount, logout }}>{children}</AuthContext.Provider>;

@@ -4,6 +4,7 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { extname, join, normalize, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDbPool, dbConfig, ensureDatabaseSchema, hashPassword, seedDefaultUsers } from "./scripts/db-utils.mjs";
+import { createSessionToken, isPublicApiRequest, readSession, sessionHasRole } from "./server-auth.mjs";
 
 const port = Number(process.env.API_PORT || process.env.PORT || 3001);
 const rootDir = dirname(fileURLToPath(import.meta.url));
@@ -287,6 +288,48 @@ async function getNutritionData() {
   };
 }
 
+async function getPublicSummary() {
+  if (usingMemoryStore) {
+    return {
+      totalChildren: memoryStore.children.length,
+      totalMeals: memoryStore.mealEntries.length,
+      growthRecordCount: Object.values(memoryStore.growthData).reduce((sum, records) => sum + records.length, 0),
+      normalChildren: memoryStore.children.filter((child) => child.status === "Normal").length,
+      childrenWithAlerts: memoryStore.children.filter((child) => child.status !== "Normal").length,
+    };
+  }
+  const [[{ totalChildren }]] = await pool.query("SELECT COUNT(*) AS totalChildren FROM children");
+  const [[{ totalMeals }]] = await pool.query("SELECT COUNT(*) AS totalMeals FROM meal_entries");
+  const [[{ growthRecordCount }]] = await pool.query("SELECT COUNT(*) AS growthRecordCount FROM growth_records");
+  const [[{ normalChildren }]] = await pool.query("SELECT COUNT(*) AS normalChildren FROM children WHERE status = 'Normal'");
+  return { totalChildren, totalMeals, growthRecordCount, normalChildren, childrenWithAlerts: totalChildren - normalChildren };
+}
+
+async function getNutritionDataForSession(session) {
+  const data = await getNutritionData();
+  if (session.role === "admin") return data;
+  let allowedChildren;
+  if (session.role === "user") {
+    allowedChildren = data.children.filter((child) => String(child.createdByEmail || "").toLowerCase() === session.email);
+  } else {
+    let assignedArea = "";
+    if (usingMemoryStore) {
+      assignedArea = memoryStore.users.find((user) => user.email === session.email && user.role === "bhw")?.assignedArea || "";
+    } else {
+      const [staffRows] = await pool.query("SELECT assigned_area FROM users WHERE email = ? AND role = 'bhw' LIMIT 1", [session.email]);
+      assignedArea = staffRows[0]?.assigned_area || "";
+    }
+    allowedChildren = data.children.filter((child) => child.assignedArea === assignedArea);
+  }
+  const childIds = new Set(allowedChildren.map((child) => child.id));
+  return {
+    children: allowedChildren,
+    mealEntries: data.mealEntries.filter((meal) => childIds.has(meal.childId)),
+    growthData: Object.fromEntries(Object.entries(data.growthData).filter(([childId]) => childIds.has(childId))),
+    actionPlans: data.actionPlans.filter((plan) => childIds.has(plan.childId)),
+  };
+}
+
 function findMemoryUser(email, password, role) {
   const normalizedEmail = String(email || "").trim().toLowerCase();
   const passwordHash = hashPassword(String(password || ""));
@@ -318,6 +361,20 @@ function toBhwUser(user) {
   };
 }
 
+function toGuardianUser(user, children = []) {
+  return {
+    id: user.id ?? user.email,
+    name: user.name,
+    email: user.email,
+    residentAddress: user.residentAddress ?? user.resident_address ?? "",
+    contactNumber: user.contactNumber ?? user.contact_number ?? "",
+    residencyConfirmed: Boolean(user.residencyConfirmed ?? user.residency_confirmed),
+    verificationStatus: user.verificationStatus ?? user.verification_status ?? "pending",
+    createdAt: user.createdAt ?? user.created_at ?? "",
+    children,
+  };
+}
+
 async function handleApi(request, response, pathname) {
   if (request.method === "GET" && pathname === "/api/health") {
     if (!usingMemoryStore) {
@@ -328,11 +385,16 @@ async function handleApi(request, response, pathname) {
   }
 
   if (request.method === "GET" && pathname === "/api/nutrition") {
-    sendJson(response, 200, await getNutritionData());
+    const session = readSession(request);
+    sendJson(response, 200, await getNutritionDataForSession(session));
     return true;
   }
 
   if (request.method === "GET" && pathname === "/api/bhws") {
+    if (!sessionHasRole(request, "admin")) {
+      sendJson(response, 403, { message: "Admin access is required to view BHW accounts." });
+      return true;
+    }
     if (usingMemoryStore) {
       sendJson(response, 200, {
         bhws: memoryStore.users.filter((user) => user.role === "bhw").map(toBhwUser),
@@ -345,7 +407,42 @@ async function handleApi(request, response, pathname) {
     return true;
   }
 
+  if (request.method === "GET" && pathname === "/api/guardians") {
+    if (!sessionHasRole(request, "admin")) {
+      sendJson(response, 403, { message: "Admin access is required to view guardians." });
+      return true;
+    }
+    if (usingMemoryStore) {
+      sendJson(response, 200, {
+        guardians: memoryStore.users.filter((user) => user.role === "user").map((user) => toGuardianUser(user, memoryStore.children.filter((child) => child.createdByEmail === user.email).map((child) => ({ id: child.id, name: child.name, status: child.status, ageDisplay: child.ageDisplay })))),
+      });
+      return true;
+    }
+
+    const [rows] = await pool.query(
+      "SELECT id, name, email, resident_address, contact_number, residency_confirmed, verification_status, created_at FROM users WHERE role = 'user' ORDER BY created_at DESC, name ASC",
+    );
+    const [childRows] = await pool.query("SELECT id, name, status, age_display, created_by_email FROM children WHERE created_by_email IS NOT NULL ORDER BY created_at DESC, name ASC");
+    const childrenByGuardian = childRows.reduce((groups, child) => {
+      const email = String(child.created_by_email).toLowerCase();
+      if (!groups[email]) groups[email] = [];
+      groups[email].push({ id: child.id, name: child.name, status: child.status, ageDisplay: child.age_display });
+      return groups;
+    }, {});
+    sendJson(response, 200, { guardians: rows.map((guardian) => toGuardianUser(guardian, childrenByGuardian[String(guardian.email).toLowerCase()] ?? [])) });
+    return true;
+  }
+
+  if (request.method === "GET" && pathname === "/api/public-summary") {
+    sendJson(response, 200, await getPublicSummary());
+    return true;
+  }
+
   if (request.method === "POST" && pathname === "/api/bhws") {
+    if (!sessionHasRole(request, "admin")) {
+      sendJson(response, 403, { message: "Admin access is required to manage BHW accounts." });
+      return true;
+    }
     const { name, email, password, designation, assignedArea, contactNumber } = await readRequestBody(request);
     const normalizedName = String(name || "").trim();
     const normalizedEmail = String(email || "").trim().toLowerCase();
@@ -400,6 +497,10 @@ async function handleApi(request, response, pathname) {
 
   const bhwMatch = pathname.match(/^\/api\/bhws\/([^/]+)$/);
   if (bhwMatch && request.method === "PUT") {
+    if (!sessionHasRole(request, "admin")) {
+      sendJson(response, 403, { message: "Admin access is required to manage BHW accounts." });
+      return true;
+    }
     const emailKey = decodeURIComponent(bhwMatch[1]).trim().toLowerCase();
     const { name, email, password, designation, assignedArea, contactNumber } = await readRequestBody(request);
     const normalizedName = String(name || "").trim();
@@ -466,6 +567,10 @@ async function handleApi(request, response, pathname) {
   }
 
   if (bhwMatch && request.method === "DELETE") {
+    if (!sessionHasRole(request, "admin")) {
+      sendJson(response, 403, { message: "Admin access is required to manage BHW accounts." });
+      return true;
+    }
     const emailKey = decodeURIComponent(bhwMatch[1]).trim().toLowerCase();
     if (!emailKey) {
       sendJson(response, 400, { message: "BHW email is required." });
@@ -488,7 +593,7 @@ async function handleApi(request, response, pathname) {
     const { email, password } = await readRequestBody(request);
     if (usingMemoryStore) {
       const user = findMemoryUser(email, password, "admin");
-      sendJson(response, user ? 200 : 401, user ? { success: true, user: toPublicUser(user) } : { success: false, message: "Invalid email or password." });
+      sendJson(response, user ? 200 : 401, user ? { success: true, user: toPublicUser(user), sessionToken: createSessionToken(user.email, "admin") } : { success: false, message: "Invalid email or password." });
       return true;
     }
 
@@ -496,7 +601,7 @@ async function handleApi(request, response, pathname) {
       String(email || "").trim().toLowerCase(),
       hashPassword(String(password || "")),
     ]);
-    sendJson(response, rows.length ? 200 : 401, rows.length ? { success: true, user: toPublicUser(rows[0]) } : { success: false, message: "Invalid email or password." });
+    sendJson(response, rows.length ? 200 : 401, rows.length ? { success: true, user: toPublicUser(rows[0]), sessionToken: createSessionToken(rows[0].email, "admin") } : { success: false, message: "Invalid email or password." });
     return true;
   }
 
@@ -504,7 +609,7 @@ async function handleApi(request, response, pathname) {
     const { email, password } = await readRequestBody(request);
     if (usingMemoryStore) {
       const user = findMemoryUser(email, password, "bhw");
-      sendJson(response, user ? 200 : 401, user ? { success: true, user: toPublicUser(user) } : { success: false, message: "Invalid email or password." });
+      sendJson(response, user ? 200 : 401, user ? { success: true, user: toPublicUser(user), sessionToken: createSessionToken(user.email, "bhw") } : { success: false, message: "Invalid email or password." });
       return true;
     }
 
@@ -512,7 +617,7 @@ async function handleApi(request, response, pathname) {
       String(email || "").trim().toLowerCase(),
       hashPassword(String(password || "")),
     ]);
-    sendJson(response, rows.length ? 200 : 401, rows.length ? { success: true, user: toPublicUser(rows[0]) } : { success: false, message: "Invalid email or password." });
+    sendJson(response, rows.length ? 200 : 401, rows.length ? { success: true, user: toPublicUser(rows[0]), sessionToken: createSessionToken(rows[0].email, "bhw") } : { success: false, message: "Invalid email or password." });
     return true;
   }
 
@@ -520,7 +625,7 @@ async function handleApi(request, response, pathname) {
     const { email, password } = await readRequestBody(request);
     if (usingMemoryStore) {
       const user = findMemoryUser(email, password, "user");
-      sendJson(response, user ? 200 : 401, user ? { success: true, user: toPublicUser(user) } : { success: false, message: "Invalid email or password." });
+      sendJson(response, user ? 200 : 401, user ? { success: true, user: toPublicUser(user), sessionToken: createSessionToken(user.email, "user") } : { success: false, message: "Invalid email or password." });
       return true;
     }
 
@@ -528,7 +633,7 @@ async function handleApi(request, response, pathname) {
       String(email || "").trim().toLowerCase(),
       hashPassword(String(password || "")),
     ]);
-    sendJson(response, rows.length ? 200 : 401, rows.length ? { success: true, user: toPublicUser(rows[0]) } : { success: false, message: "Invalid email or password." });
+    sendJson(response, rows.length ? 200 : 401, rows.length ? { success: true, user: toPublicUser(rows[0]), sessionToken: createSessionToken(rows[0].email, "user") } : { success: false, message: "Invalid email or password." });
     return true;
   }
 
@@ -584,7 +689,8 @@ async function handleApi(request, response, pathname) {
         idDocumentType: String(idDocument.type),
         idDocumentData: documentData,
       });
-      sendJson(response, 201, { success: true, user: toPublicUser(memoryStore.users.at(-1)) });
+      const newUser = memoryStore.users.at(-1);
+      sendJson(response, 201, { success: true, user: toPublicUser(newUser), sessionToken: createSessionToken(newUser.email, "user") });
       return true;
     }
 
@@ -607,6 +713,7 @@ async function handleApi(request, response, pathname) {
       );
       sendJson(response, 201, {
         success: true,
+        sessionToken: createSessionToken(normalizedEmail, "user"),
         user: {
           name: String(name || "").trim(),
           email: normalizedEmail,
@@ -627,8 +734,13 @@ async function handleApi(request, response, pathname) {
   }
 
   if (request.method === "PUT" && pathname === "/api/auth/profile") {
+    const session = sessionHasRole(request, "user");
     const { email, name, residentAddress, contactNumber } = await readRequestBody(request);
     const normalizedEmail = String(email || "").trim().toLowerCase();
+    if (!session || normalizedEmail !== session.email) {
+      sendJson(response, 403, { success: false, message: "You can only update your own guardian profile." });
+      return true;
+    }
     const normalizedName = String(name || "").trim();
     const normalizedAddress = String(residentAddress || "").trim();
     const normalizedContactNumber = String(contactNumber || "").trim();
@@ -685,8 +797,13 @@ async function handleApi(request, response, pathname) {
   }
 
   if (request.method === "PUT" && pathname === "/api/auth/staff-profile") {
+    const session = sessionHasRole(request, "bhw");
     const { email, role, name, contactNumber } = await readRequestBody(request);
     const normalizedEmail = String(email || "").trim().toLowerCase();
+    if (!session || normalizedEmail !== session.email || role !== "bhw") {
+      sendJson(response, 403, { success: false, message: "You can only update your own BHW profile." });
+      return true;
+    }
     const normalizedRole = String(role || "").trim().toLowerCase();
     const normalizedName = String(name || "").trim();
     const normalizedContactNumber = String(contactNumber || "").trim();
@@ -730,8 +847,13 @@ async function handleApi(request, response, pathname) {
   }
 
   if (request.method === "DELETE" && pathname === "/api/auth/profile") {
+    const session = readSession(request);
     const { email, currentPassword, role } = await readRequestBody(request);
     const normalizedEmail = String(email || "").trim().toLowerCase();
+    if (!session || normalizedEmail !== session.email || role !== session.role || role === "admin") {
+      sendJson(response, 403, { success: false, message: "You can only delete your own non-admin profile." });
+      return true;
+    }
     const normalizedRole = String(role || "").trim().toLowerCase();
 
     if (!normalizedEmail || !currentPassword || !isNonAdminRole(normalizedRole)) {
@@ -808,6 +930,20 @@ async function handleApi(request, response, pathname) {
 
   if (request.method === "POST" && pathname === "/api/children") {
     const { child, growthRecord } = await readRequestBody(request);
+    const session = readSession(request);
+    if (!child) {
+      sendJson(response, 400, { message: "A child profile is required." });
+      return true;
+    }
+    if (session.role === "user") child.createdByEmail = session.email;
+    if (session.role === "bhw") {
+      const staff = usingMemoryStore
+        ? memoryStore.users.find((user) => user.email === session.email && user.role === "bhw")
+        : (await pool.query("SELECT name, email, assigned_area FROM users WHERE email = ? AND role = 'bhw' LIMIT 1", [session.email]))[0][0];
+      child.assignedArea = staff?.assignedArea || staff?.assigned_area || "";
+      child.assignedBhwName = staff?.name || "";
+      child.assignedBhwEmail = staff?.email || session.email;
+    }
     if (!child?.id || !child?.firstName || !child?.lastName || !child?.birthDate || !child?.gender || !isPositiveNumber(child.weight) || !isPositiveNumber(child.height)) {
       sendJson(response, 400, { message: "Child name, birthdate, gender, weight, and height are required." });
       return true;
@@ -883,8 +1019,22 @@ async function handleApi(request, response, pathname) {
 
   const actionPlanMatch = pathname.match(/^\/api\/children\/([^/]+)\/action-plan$/);
   if (request.method === "PUT" && actionPlanMatch) {
+    const session = sessionHasRole(request, "admin", "bhw");
+    if (!session) {
+      sendJson(response, 403, { message: "Staff access is required to update nutrition action plans." });
+      return true;
+    }
     const childId = decodeURIComponent(actionPlanMatch[1]);
     const { plan } = await readRequestBody(request);
+    if (session.role === "bhw") {
+      const assigned = usingMemoryStore
+        ? memoryStore.children.some((child) => child.id === childId && child.assignedBhwEmail?.toLowerCase() === session.email)
+        : (await pool.query("SELECT id FROM children WHERE id = ? AND assigned_bhw_email = ? LIMIT 1", [childId, session.email]))[0].length > 0;
+      if (!assigned) {
+        sendJson(response, 403, { message: "This child is outside your assigned caseload." });
+        return true;
+      }
+    }
     if (!plan || plan.childId !== childId || !plan.severity || !plan.summary || !plan.followUpDate || !plan.targetSummary) {
       sendJson(response, 400, { message: "A complete action plan is required." });
       return true;
@@ -929,8 +1079,22 @@ async function handleApi(request, response, pathname) {
 
   const childUpdateMatch = pathname.match(/^\/api\/children\/([^/]+)$/);
   if (request.method === "PUT" && childUpdateMatch) {
+    const session = sessionHasRole(request, "admin", "bhw");
+    if (!session) {
+      sendJson(response, 403, { message: "Staff access is required to update child records." });
+      return true;
+    }
     const childId = decodeURIComponent(childUpdateMatch[1]);
     const { child } = await readRequestBody(request);
+    if (session.role === "bhw") {
+      const assigned = usingMemoryStore
+        ? memoryStore.children.some((existing) => existing.id === childId && existing.assignedBhwEmail?.toLowerCase() === session.email)
+        : (await pool.query("SELECT id FROM children WHERE id = ? AND assigned_bhw_email = ? LIMIT 1", [childId, session.email]))[0].length > 0;
+      if (!assigned) {
+        sendJson(response, 403, { message: "This child is outside your assigned caseload." });
+        return true;
+      }
+    }
 
     if (!child?.id || child.id !== childId || !child?.firstName || !child?.lastName || !child?.birthDate || !child?.gender || !isPositiveNumber(child.weight) || !isPositiveNumber(child.height)) {
       sendJson(response, 400, { message: "Child name, birthdate, gender, weight, and height are required." });
@@ -949,11 +1113,23 @@ async function handleApi(request, response, pathname) {
         return true;
       }
 
+      if (session.role === "bhw") {
+        const existing = memoryStore.children[existingIndex];
+        child.assignedArea = existing.assignedArea;
+        child.assignedBhwEmail = existing.assignedBhwEmail;
+        child.assignedBhwName = existing.assignedBhwName;
+      }
       memoryStore.children[existingIndex] = child;
       sendJson(response, 200, { child });
       return true;
     }
 
+    if (session.role === "bhw") {
+      const [assignedRows] = await pool.query("SELECT assigned_area, assigned_bhw_name, assigned_bhw_email FROM children WHERE id = ? LIMIT 1", [childId]);
+      child.assignedArea = assignedRows[0].assigned_area;
+      child.assignedBhwName = assignedRows[0].assigned_bhw_name;
+      child.assignedBhwEmail = assignedRows[0].assigned_bhw_email;
+    }
     const [result] = await pool.query(
       `UPDATE children SET
         first_name = ?, middle_name = ?, last_name = ?, name = ?, birth_date = ?, age = ?, age_display = ?, gender = ?,
@@ -1005,10 +1181,32 @@ async function handleApi(request, response, pathname) {
   }
 
   if (request.method === "POST" && pathname === "/api/meals") {
+    const session = sessionHasRole(request, "bhw");
+    if (!session) {
+      sendJson(response, 403, { message: "Only BHW users can add feeding-program meal records." });
+      return true;
+    }
     const { meal } = await readRequestBody(request);
+    if (!meal || !meal.id || !meal.childId || !meal.date || !["Breakfast", "Lunch", "Dinner", "Snack"].includes(meal.mealType) || !Array.isArray(meal.foods) || meal.foods.length === 0 || ![meal.calories, meal.protein, meal.carbs, meal.fat].every((value) => Number.isFinite(value) && value >= 0)) {
+      sendJson(response, 400, { message: "A valid child, date, food list, and non-negative nutrition estimate are required." });
+      return true;
+    }
     if (usingMemoryStore) {
+      const staff = memoryStore.users.find((user) => user.email === session.email && user.role === "bhw");
+      const assignedChild = memoryStore.children.find((child) => child.id === meal.childId && child.assignedArea === staff?.assignedArea);
+      if (!assignedChild) {
+        sendJson(response, 403, { message: "This child is outside your assigned area." });
+        return true;
+      }
       memoryStore.mealEntries.unshift(meal);
       sendJson(response, 201, { meal });
+      return true;
+    }
+
+    const [[staff]] = await pool.query("SELECT assigned_area FROM users WHERE email = ? AND role = 'bhw' LIMIT 1", [session.email]);
+    const [[child]] = await pool.query("SELECT id FROM children WHERE id = ? AND assigned_area = ? LIMIT 1", [meal.childId, staff?.assigned_area || ""]);
+    if (!child) {
+      sendJson(response, 403, { message: "This child is outside your assigned area." });
       return true;
     }
 
@@ -1022,17 +1220,40 @@ async function handleApi(request, response, pathname) {
 
   if (request.method === "POST" && pathname === "/api/growth-records") {
     const { childId, record, child } = await readRequestBody(request);
-    if (!childId || !record?.date || !isPositiveNumber(record.weight) || !isPositiveNumber(record.height) || !child) {
+    const session = readSession(request);
+    if (!childId || child?.id !== childId || !record?.date || !isPositiveNumber(record.weight) || !isPositiveNumber(record.height) || !child) {
       sendJson(response, 400, { message: "Child, date, weight, and height are required for a growth update." });
       return true;
     }
 
     if (usingMemoryStore) {
+      const existing = memoryStore.children.find((entry) => entry.id === childId);
+      const staff = session.role === "bhw" ? memoryStore.users.find((entry) => entry.email === session.email && entry.role === "bhw") : null;
+      const ownsChild = session.role === "admin" || (session.role === "user" && existing?.createdByEmail?.toLowerCase() === session.email) || (session.role === "bhw" && existing?.assignedArea === staff?.assignedArea);
+      if (!ownsChild) {
+        sendJson(response, 403, { message: "You do not have access to update this child's growth record." });
+        return true;
+      }
       memoryStore.growthData[childId] = memoryStore.growthData[childId] || [];
       memoryStore.growthData[childId].push(record);
       memoryStore.children = memoryStore.children.map((existingChild) => (existingChild.id === childId ? child : existingChild));
       sendJson(response, 201, { record, child });
       return true;
+    }
+
+    if (session.role === "user") {
+      const [ownerRows] = await pool.query("SELECT id FROM children WHERE id = ? AND created_by_email = ? LIMIT 1", [childId, session.email]);
+      if (!ownerRows.length) {
+        sendJson(response, 403, { message: "You do not have access to update this child's growth record." });
+        return true;
+      }
+    } else if (session.role === "bhw") {
+      const [[staff]] = await pool.query("SELECT assigned_area FROM users WHERE email = ? AND role = 'bhw' LIMIT 1", [session.email]);
+      const [assignedRows] = await pool.query("SELECT id FROM children WHERE id = ? AND assigned_area = ? LIMIT 1", [childId, staff?.assigned_area || ""]);
+      if (!assignedRows.length) {
+        sendJson(response, 403, { message: "This child is outside your assigned area." });
+        return true;
+      }
     }
 
     await pool.query("INSERT INTO growth_records (child_id, date_value, weight, height) VALUES (?, ?, ?, ?)", [
@@ -1085,6 +1306,10 @@ export async function requestHandler(request, response) {
     const { pathname } = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
 
     if (pathname.startsWith("/api/")) {
+      if (!isPublicApiRequest(request.method, pathname) && !readSession(request)) {
+        sendJson(response, 401, { message: "A valid signed-in session is required." });
+        return;
+      }
       const handled = await handleApi(request, response, pathname);
       if (!handled) sendJson(response, 404, { message: "API route not found." });
       return;

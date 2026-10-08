@@ -20,9 +20,10 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="section-enter">
-        <h1 className="text-2xl font-bold text-foreground leading-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Barangay Tinampa-an Health Center, Cadiz City - Children's Health Overview</p>
+      <div className="section-enter rounded-[24px] bg-[#e8f6fc] p-6 shadow-[0_10px_30px_rgba(68,116,177,0.08)] sm:p-8">
+        <span className="inline-flex items-center rounded-full bg-white/75 px-3 py-1 text-xs font-semibold text-[#3970a5]">Children&apos;s health overview</span>
+        <h1 className="mt-4 text-3xl font-bold leading-tight text-[#142650] sm:text-4xl">Welcome back, {staffUser?.name?.split(" ")[0] || (staffRole === "bhw" ? "BHW" : "Admin")}!</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-[#48658f] sm:text-base">Monitor children&apos;s nutrition, meals, growth, and follow-up needs from one connected workspace.</p>
         {staffRole === "bhw" && staffUser?.assignedArea && (
           <p className="mt-2 inline-flex rounded-lg bg-muted px-3 py-1 text-sm font-medium text-foreground">
             Assigned Area: {staffUser.assignedArea}
@@ -36,7 +37,7 @@ export default function Dashboard() {
           { label: "Children Monitored", value: dashboardStats.totalChildren, icon: Users, bg: "bg-sky" },
           { label: "Meals Logged Today", value: dashboardStats.mealsLoggedToday, icon: Utensils, bg: "bg-peach" },
           { label: "Pending Alerts", value: dashboardStats.pendingAlerts, icon: AlertTriangle, bg: "bg-coral-light" },
-          { label: "Normal Status", value: `${Math.round((dashboardStats.normalCount / dashboardStats.totalChildren) * 100)}%`, icon: Heart, bg: "bg-sage" },
+          { label: "Normal Status", value: `${dashboardStats.totalChildren ? Math.round((dashboardStats.normalCount / dashboardStats.totalChildren) * 100) : 0}%`, icon: Heart, bg: "bg-sage" },
         ].map((stat, i) => (
           <div key={stat.label} className={`stat-card section-enter stagger-${i + 1}`}>
             <div className="flex items-center justify-between">

@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Leaf,
   LogOut,
+  Plus,
   Salad,
   TrendingUp,
   UserRound,
@@ -55,7 +56,7 @@ function UserSidebarContent({
         {!collapsed && (
           <div className="min-w-0">
             <p className="truncate text-lg font-bold tracking-tight text-sidebar-foreground">Nutri-Track</p>
-            <p className="truncate text-xs text-white/60">User Account</p>
+            <p className="truncate text-xs text-white/60">Child Nutrition Tracker</p>
           </div>
         )}
       </div>
@@ -87,9 +88,9 @@ function UserSidebarContent({
             <p className="px-3 text-xs font-semibold uppercase tracking-wide text-white/45">Child Profiles</p>
           )}
           {myChildren.length === 0 ? (
-            <div className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/35">
-              <Baby className="h-5 w-5 shrink-0" />
-              {!collapsed && <span>No children yet</span>}
+            <div className="rounded-lg px-3 py-2.5 text-sm font-medium text-white/45">
+              <div className="flex items-center gap-3"><Baby className="h-5 w-5 shrink-0" />{!collapsed && <span>No children yet</span>}</div>
+              {!collapsed && <p className="mt-2 text-xs leading-5 text-white/55">Add a child to start tracking their nutrition and growth.</p>}
             </div>
           ) : (
             myChildren.map((child) => {
@@ -112,6 +113,10 @@ function UserSidebarContent({
               );
             })
           )}
+          <button type="button" onClick={() => navigate("/user?dialog=child")} className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#4b8cf5] to-[#79a9ff] px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-105">
+            <Plus className="h-4 w-4 shrink-0" />
+            {!collapsed && <span>Add Child</span>}
+          </button>
         </div>
       </nav>
 

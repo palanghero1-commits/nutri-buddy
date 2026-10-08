@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { Leaf, UtensilsCrossed, TrendingUp, Bell, Shield, Heart, Users, ArrowRight } from "lucide-react";
 import { apiRequest } from "@/lib/api";
-import type { Child, GrowthRecord, MealEntry } from "@/lib/mockData";
 
 const features = [
   {
@@ -37,10 +36,12 @@ const features = [
   },
 ];
 
-type NutritionResponse = {
-  children: Child[];
-  mealEntries: MealEntry[];
-  growthData: Record<string, GrowthRecord[]>;
+type PublicSummary = {
+  totalChildren: number;
+  totalMeals: number;
+  growthRecordCount: number;
+  normalChildren: number;
+  childrenWithAlerts: number;
 };
 
 type LiveStatus = "loading" | "ready" | "error";
@@ -51,17 +52,13 @@ function formatPercent(value: number) {
 }
 
 export default function HomePage() {
-  const [liveData, setLiveData] = useState<NutritionResponse>({
-    children: [],
-    mealEntries: [],
-    growthData: {},
-  });
+  const [liveData, setLiveData] = useState<PublicSummary>({ totalChildren: 0, totalMeals: 0, growthRecordCount: 0, normalChildren: 0, childrenWithAlerts: 0 });
   const [liveStatus, setLiveStatus] = useState<LiveStatus>("loading");
 
   useEffect(() => {
     let isActive = true;
 
-    apiRequest<NutritionResponse>("/api/nutrition")
+    apiRequest<PublicSummary>("/api/public-summary")
       .then((data) => {
         if (!isActive) return;
         setLiveData(data);
@@ -78,15 +75,8 @@ export default function HomePage() {
   }, []);
 
   const livePreview = useMemo(() => {
-    const totalChildren = liveData.children.length;
-    const totalMeals = liveData.mealEntries.length;
-    const growthRecordCount = Object.values(liveData.growthData).reduce((total, records) => total + records.length, 0);
-    const normalChildren = liveData.children.filter((child) => child.status === "Normal").length;
-    const childrenWithAlerts = liveData.children.filter((child) => child.status !== "Normal").length;
+    const { totalChildren, totalMeals, growthRecordCount, normalChildren, childrenWithAlerts } = liveData;
     const growthOnTrack = totalChildren === 0 ? 0 : (normalChildren / totalChildren) * 100;
-    const recentChildren = [...liveData.children]
-      .sort((a, b) => String(b.updatedAt ?? "").localeCompare(String(a.updatedAt ?? "")))
-      .slice(0, 3);
 
     return {
       totalChildren,
@@ -95,7 +85,6 @@ export default function HomePage() {
       normalChildren,
       childrenWithAlerts,
       growthOnTrack,
-      recentChildren,
       stats: [
         { value: String(totalChildren), label: "Children Monitored" },
         { value: String(totalMeals), label: "Meals Tracked" },
@@ -106,7 +95,7 @@ export default function HomePage() {
   }, [liveData]);
 
   const statusText =
-    liveStatus === "loading" ? "Loading live data" : liveStatus === "ready" ? "Live from MySQL database" : "API preview unavailable";
+    liveStatus === "loading" ? "Loading live data" : liveStatus === "ready" ? "Live from nutrition database" : "API preview unavailable";
 
   return (
     <div className="min-h-screen bg-background">
@@ -213,19 +202,8 @@ export default function HomePage() {
                     </div>
                   </div>
                   <div className="rounded-2xl border border-border/60 bg-foreground p-5 text-background">
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-background/70">Recent Children</p>
-                    <div className="mt-4 space-y-3">
-                      {livePreview.recentChildren.length === 0 ? (
-                        <p className="text-sm text-background/75">No child records yet.</p>
-                      ) : (
-                        livePreview.recentChildren.map((child) => (
-                          <div key={child.id} className="flex items-center justify-between gap-3">
-                            <span className="truncate text-sm">{child.name}</span>
-                            <span className="shrink-0 text-sm font-semibold">{child.status}</span>
-                          </div>
-                        ))
-                      )}
-                    </div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-background/70">Community Snapshot</p>
+                    <p className="mt-4 text-sm leading-6 text-background/80">Aggregate totals are shown here. Individual child and family health information is available only to signed-in users with access.</p>
                   </div>
                 </div>
               </div>

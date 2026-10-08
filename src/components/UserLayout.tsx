@@ -15,7 +15,7 @@ export default function UserLayout({ children }: { children: ReactNode }) {
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
             <div>
               <p className="text-base font-bold text-foreground">Nutri-Track</p>
-              <p className="text-xs text-muted-foreground">User Account</p>
+              <p className="text-xs text-muted-foreground">Child Nutrition Tracker</p>
             </div>
             <Sheet>
               <SheetTrigger asChild>

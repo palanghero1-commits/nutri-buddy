@@ -4,6 +4,7 @@ import {
   getBhwForArea,
   getBhwForAddress,
   getChildAgeParts,
+  normalizeDataEncoding,
   type Alert,
   type Child,
   type ChildStatus,
@@ -82,24 +83,7 @@ type NutritionResponse = {
   actionPlans?: ActionPlanRecord[];
 };
 
-const STORAGE_KEYS = {
-  children: "nutri-children",
-  meals: "nutri-meals",
-  growth: "nutri-growth",
-} as const;
-
 const NutriDataContext = createContext<NutriDataContextType | null>(null);
-
-function loadStorage<T>(key: string, fallback: T): T {
-  const stored = localStorage.getItem(key);
-  if (!stored) return fallback;
-
-  try {
-    return JSON.parse(stored) as T;
-  } catch {
-    return fallback;
-  }
-}
 
 function toFixedNumber(value: number, digits = 1) {
   return Number(value.toFixed(digits));
@@ -250,16 +234,23 @@ function deriveDashboardStats(children: Child[], meals: MealEntry[], alerts: Ale
 }
 
 export function NutriDataProvider({ children }: { children: ReactNode }) {
-  const { staffRole, staffUser } = useAuth();
-  const [childProfiles, setChildProfiles] = useState<Child[]>(() => loadStorage(STORAGE_KEYS.children, []));
-  const [mealEntries, setMealEntries] = useState<MealEntry[]>(() => loadStorage(STORAGE_KEYS.meals, []));
-  const [growthData, setGrowthData] = useState<Record<string, GrowthRecord[]>>(() =>
-    loadStorage(STORAGE_KEYS.growth, {}),
-  );
+  const { staffRole, staffUser, currentUser } = useAuth();
+  const [childProfiles, setChildProfiles] = useState<Child[]>([]);
+  const [mealEntries, setMealEntries] = useState<MealEntry[]>([]);
+  const [growthData, setGrowthData] = useState<Record<string, GrowthRecord[]>>({});
   const [actionPlanRecords, setActionPlanRecords] = useState<Record<string, ActionPlanRecord>>({});
   const [isDemoFallbackActive, setIsDemoFallbackActive] = useState(false);
 
   useEffect(() => {
+    if (!staffRole && !currentUser) {
+      setChildProfiles([]);
+      setMealEntries([]);
+      setGrowthData({});
+      setActionPlanRecords({});
+      setIsDemoFallbackActive(false);
+      return;
+    }
+
     let isActive = true;
 
     apiRequest<NutritionResponse>("/api/nutrition")
@@ -283,7 +274,7 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [staffRole, staffUser?.email, currentUser]);
   const childrenWithCurrentAges = useMemo(
     () =>
       childProfiles.map((child) => {
@@ -324,54 +315,47 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
   );
 
   const visibleChildren = useMemo(() => {
+    if (currentUser) {
+      return childrenWithCurrentAges.filter((child) => child.createdByEmail?.toLowerCase() === currentUser.email.toLowerCase());
+    }
     if (staffRole !== "bhw" || !staffUser?.assignedArea) {
       return childrenWithCurrentAges;
     }
 
     return childrenWithCurrentAges.filter((child) => child.assignedArea === staffUser.assignedArea);
-  }, [childrenWithCurrentAges, staffRole, staffUser?.assignedArea]);
+  }, [childrenWithCurrentAges, currentUser, staffRole, staffUser?.assignedArea]);
 
   const visibleMealEntries = useMemo(() => {
-    if (staffRole !== "bhw") {
+    if (!staffRole && !currentUser) return [];
+    if (staffRole !== "bhw" && !currentUser) {
       return mealEntries;
     }
 
     const visibleChildIds = new Set(visibleChildren.map((child) => child.id));
     return mealEntries.filter((meal) => visibleChildIds.has(meal.childId));
-  }, [mealEntries, staffRole, visibleChildren]);
+  }, [currentUser, mealEntries, staffRole, visibleChildren]);
 
   const visibleGrowthData = useMemo(() => {
-    if (staffRole !== "bhw") {
+    if (!staffRole && !currentUser) return {};
+    if (staffRole !== "bhw" && !currentUser) {
       return growthData;
     }
 
     const visibleChildIds = new Set(visibleChildren.map((child) => child.id));
     return Object.fromEntries(Object.entries(growthData).filter(([childId]) => visibleChildIds.has(childId)));
-  }, [growthData, staffRole, visibleChildren]);
+  }, [currentUser, growthData, staffRole, visibleChildren]);
 
   const actionPlans = useMemo(
     () => Object.fromEntries(visibleChildren.map((child) => [child.id, buildNutritionActionPlan(child, visibleMealEntries.filter((meal) => meal.childId === child.id), visibleGrowthData[child.id] ?? [], actionPlanRecords[child.id])])),
     [actionPlanRecords, visibleChildren, visibleGrowthData, visibleMealEntries],
   );
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.children, JSON.stringify(childProfiles));
-  }, [childProfiles]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.meals, JSON.stringify(mealEntries));
-  }, [mealEntries]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.growth, JSON.stringify(growthData));
-  }, [growthData]);
-
   const addChild = async (input: AddChildInput) => {
     const bmi = calculateBmi(input.weight, input.height);
     const today = new Date().toISOString().slice(0, 10);
-    const firstName = input.firstName.trim();
-    const middleName = input.middleName?.trim();
-    const lastName = input.lastName.trim();
+    const firstName = normalizeDataEncoding(input.firstName);
+    const middleName = input.middleName ? normalizeDataEncoding(input.middleName) : undefined;
+    const lastName = normalizeDataEncoding(input.lastName);
     const name = createFullName(firstName, middleName, lastName);
     const age = getChildAgeParts(input.birthDate).years;
     const ageDisplay = formatChildAge(input.birthDate);
@@ -391,44 +375,35 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
       bmi,
       status: deriveStatus(age, input.height, bmi),
       avatar: createAvatar(name),
-      parentName: input.parentName.trim(),
+      parentName: normalizeDataEncoding(input.parentName),
       guardianType: input.guardianType,
-      motherName: input.motherName.trim(),
-      fatherName: input.fatherName.trim() || "Not recorded",
-      address: input.address.trim(),
-      guardianAddress: input.guardianAddress,
+      motherName: normalizeDataEncoding(input.motherName),
+      fatherName: normalizeDataEncoding(input.fatherName) || "NOT RECORDED",
+      address: normalizeDataEncoding(input.address),
+      guardianAddress: Object.fromEntries(Object.entries(input.guardianAddress).map(([key, value]) => [key, normalizeDataEncoding(value)])) as Child["guardianAddress"],
       assignedArea: assignedBhw.area,
       assignedBhwName: assignedBhw.bhwName,
       assignedBhwEmail: assignedBhw.bhwEmail,
-      allergies: input.allergies?.trim() || "",
+      allergies: input.allergies ? normalizeDataEncoding(input.allergies) : "",
       createdByEmail: input.createdByEmail,
       updatedAt: today,
     };
 
     const initialGrowthRecord = { date: today, weight: nextChild.weight, height: nextChild.height };
-
+    await apiRequest<{ child: Child }>("/api/children", {
+      method: "POST",
+      body: JSON.stringify({ child: nextChild, growthRecord: initialGrowthRecord }),
+    });
     setChildProfiles((current) => [nextChild, ...current]);
-    setGrowthData((current) => ({
-      ...current,
-      [nextChild.id]: [initialGrowthRecord],
-    }));
-
-    try {
-      await apiRequest<{ child: Child }>("/api/children", {
-        method: "POST",
-        body: JSON.stringify({ child: nextChild, growthRecord: initialGrowthRecord }),
-      });
-    } catch (error) {
-      console.error("Unable to save child to MySQL API.", error);
-    }
+    setGrowthData((current) => ({ ...current, [nextChild.id]: [initialGrowthRecord] }));
   };
 
   const buildChildFromInput = (input: AddChildInput, existingChild?: Child): Child => {
     const bmi = calculateBmi(input.weight, input.height);
     const today = new Date().toISOString().slice(0, 10);
-    const firstName = input.firstName.trim();
-    const middleName = input.middleName?.trim();
-    const lastName = input.lastName.trim();
+    const firstName = normalizeDataEncoding(input.firstName);
+    const middleName = input.middleName ? normalizeDataEncoding(input.middleName) : undefined;
+    const lastName = normalizeDataEncoding(input.lastName);
     const name = createFullName(firstName, middleName, lastName);
     const age = getChildAgeParts(input.birthDate).years;
     const ageDisplay = formatChildAge(input.birthDate);
@@ -449,16 +424,16 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
       bmi,
       status: deriveStatus(age, input.height, bmi),
       avatar: createAvatar(name),
-      parentName: input.parentName.trim(),
+      parentName: normalizeDataEncoding(input.parentName),
       guardianType: input.guardianType,
-      motherName: input.motherName.trim(),
-      fatherName: input.fatherName.trim() || "Not recorded",
-      address: input.address.trim(),
-      guardianAddress: input.guardianAddress,
+      motherName: normalizeDataEncoding(input.motherName),
+      fatherName: normalizeDataEncoding(input.fatherName) || "NOT RECORDED",
+      address: normalizeDataEncoding(input.address),
+      guardianAddress: Object.fromEntries(Object.entries(input.guardianAddress).map(([key, value]) => [key, normalizeDataEncoding(value)])) as Child["guardianAddress"],
       assignedArea: assignedBhw.area,
       assignedBhwName: assignedBhw.bhwName,
       assignedBhwEmail: assignedBhw.bhwEmail,
-      allergies: input.allergies?.trim() || "",
+      allergies: input.allergies ? normalizeDataEncoding(input.allergies) : "",
       createdByEmail: existingChild?.createdByEmail ?? input.createdByEmail,
       updatedAt: today,
     };
@@ -470,42 +445,39 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
 
     const updatedChild = buildChildFromInput(input, existingChild);
 
-    setChildProfiles((current) =>
-      current.map((child) => (child.id === childId ? updatedChild : child)),
-    );
-
-    try {
-      await apiRequest<{ child: Child }>(`/api/children/${encodeURIComponent(childId)}`, {
-        method: "PUT",
-        body: JSON.stringify({ child: updatedChild }),
-      });
-    } catch (error) {
-      console.error("Unable to update child in MySQL API.", error);
-    }
+    await apiRequest<{ child: Child }>(`/api/children/${encodeURIComponent(childId)}`, {
+      method: "PUT",
+      body: JSON.stringify({ child: updatedChild }),
+    });
+    setChildProfiles((current) => current.map((child) => (child.id === childId ? updatedChild : child)));
   };
 
   const addMealEntry = async (input: AddMealInput) => {
+    if (staffRole !== "bhw") {
+      throw new Error("Only BHW users can add feeding-program meal records.");
+    }
+
     const nextMeal: MealEntry = {
       id: createId("meal"),
       childId: input.childId,
       date: input.date,
       mealType: input.mealType,
-      foods: input.foods,
+      foods: input.foods.map(normalizeDataEncoding),
       calories: input.calories,
       protein: input.protein,
       carbs: input.carbs,
       fat: input.fat,
     };
 
-    setMealEntries((current) => [nextMeal, ...current]);
-
     try {
       await apiRequest<{ meal: MealEntry }>("/api/meals", {
         method: "POST",
         body: JSON.stringify({ meal: nextMeal }),
       });
+      setMealEntries((current) => [nextMeal, ...current]);
     } catch (error) {
       console.error("Unable to save meal to MySQL API.", error);
+      throw error;
     }
   };
 
@@ -532,27 +504,15 @@ export function NutriDataProvider({ children }: { children: ReactNode }) {
       height: toFixedNumber(input.height),
     };
 
+    await apiRequest<{ record: GrowthRecord; child: Child }>("/api/growth-records", {
+      method: "POST",
+      body: JSON.stringify({ childId: input.childId, record: nextRecord, child: updatedChild }),
+    });
     setGrowthData((current) => {
       const existing = current[input.childId] ?? [];
-      const nextRecords = [...existing, nextRecord].sort((a, b) => a.date.localeCompare(b.date));
-      return {
-        ...current,
-        [input.childId]: nextRecords,
-      };
+      return { ...current, [input.childId]: [...existing, nextRecord].sort((a, b) => a.date.localeCompare(b.date)) };
     });
-
-    setChildProfiles((current) =>
-      current.map((child) => (child.id === input.childId ? updatedChild : child)),
-    );
-
-    try {
-      await apiRequest<{ record: GrowthRecord; child: Child }>("/api/growth-records", {
-        method: "POST",
-        body: JSON.stringify({ childId: input.childId, record: nextRecord, child: updatedChild }),
-      });
-    } catch (error) {
-      console.error("Unable to save growth record to MySQL API.", error);
-    }
+    setChildProfiles((current) => current.map((child) => (child.id === input.childId ? updatedChild : child)));
   };
 
   const updateActionPlan = async (childId: string, update: ActionPlanUpdate) => {

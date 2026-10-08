@@ -24,6 +24,7 @@ import GrowthMonitor from "@/pages/GrowthMonitor";
 import AlertsPage from "@/pages/AlertsPage";
 import ReportsPage from "@/pages/ReportsPage";
 import BhwManagement from "@/pages/BhwManagement";
+import GuardiansPage from "@/pages/GuardiansPage";
 import BhwProfile from "@/pages/BhwProfile";
 import StaffChildProfile from "@/pages/StaffChildProfile";
 import NotFound from "@/pages/NotFound";
@@ -54,6 +55,7 @@ const App = () => (
               <Route path="/admin/alerts" element={<AdminRoute><AlertsPage /></AdminRoute>} />
               <Route path="/admin/reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
               <Route path="/admin/bhws" element={<AdminRoute><BhwManagement /></AdminRoute>} />
+              <Route path="/admin/guardians" element={<AdminRoute allowedRoles={["admin"]}><GuardiansPage /></AdminRoute>} />
 
               {/* BHW routes */}
               <Route path="/bhw" element={<AdminRoute allowedRoles={["bhw"]}><Dashboard /></AdminRoute>} />

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Bell,
   Plus,
@@ -21,6 +22,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useNutriData } from "@/hooks/useNutriData";
 import { formatChildAge, getBhwForAddress, type GuardianAddress, type GuardianType } from "@/lib/mockData";
+import GuardianDashboardOverview from "@/components/GuardianDashboardOverview";
 
 const today = new Date().toISOString().slice(0, 10);
 const currentMonth = new Date().toISOString().slice(0, 7);
@@ -46,10 +48,24 @@ function formatGuardianAddress(address: GuardianAddress) {
   ].map((part) => part.trim()).filter(Boolean).join(", ");
 }
 
+function createAccountGuardianAddress(residentAddress?: string): GuardianAddress {
+  return {
+    purok: residentAddress?.trim() || "Same as guardian profile",
+    hacienda: "",
+    street: "",
+    barangay: "Tinampa-an",
+    cityMunicipality: "Cadiz City",
+    province: "Negros Occidental",
+  };
+}
+
 export default function UserPortal() {
   const { currentUser } = useAuth();
-  const { children, addChild, addMealEntry, addGrowthRecord } = useNutriData();
+  const { children, mealEntries, growthData, addChild, addMealEntry, addGrowthRecord } = useNutriData();
   const [activeDialog, setActiveDialog] = useState<"child" | "meal" | "growth" | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [childStep, setChildStep] = useState<"child" | "guardian">("child");
+  const [differentGuardian, setDifferentGuardian] = useState(false);
 
   const [childForm, setChildForm] = useState({
     firstName: "",
@@ -92,6 +108,15 @@ export default function UserPortal() {
   const guardianNameLabel = `${childForm.guardianType}'s Name`;
   const guardianNamePlaceholder = `Enter ${childForm.guardianType.toLowerCase()}'s full name`;
   const assignedBhw = getBhwForAddress(childForm.guardianAddress);
+  const canProceedToGuardian = Boolean(childForm.firstName.trim() && childForm.lastName.trim() && childForm.birthDate && childForm.weight && childForm.height);
+
+  useEffect(() => {
+    const requestedDialog = searchParams.get("dialog");
+    if (requestedDialog === "child" || requestedDialog === "growth") {
+      setActiveDialog(requestedDialog);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!mealForm.childId && myChildren.length > 0) {
@@ -112,7 +137,8 @@ export default function UserPortal() {
       return;
     }
 
-    const guardianAddress = {
+    const accountGuardianAddress = createAccountGuardianAddress(currentUser.residentAddress);
+    const guardianAddress = differentGuardian ? {
       ...childForm.guardianAddress,
       purok: childForm.guardianAddress.purok.trim(),
       hacienda: childForm.guardianAddress.hacienda.trim(),
@@ -120,11 +146,12 @@ export default function UserPortal() {
       barangay: childForm.guardianAddress.barangay.trim(),
       cityMunicipality: childForm.guardianAddress.cityMunicipality.trim(),
       province: childForm.guardianAddress.province.trim(),
-    };
+    } : accountGuardianAddress;
     const formattedGuardianAddress = formatGuardianAddress(guardianAddress);
     const lockedBhwAssignment = getBhwForAddress(guardianAddress);
+    const guardianName = differentGuardian ? childForm.motherName.trim() : currentUser.name;
 
-    if (!childForm.guardianType || !childForm.motherName.trim() || !guardianAddress.purok || !guardianAddress.barangay || !guardianAddress.cityMunicipality || !guardianAddress.province) {
+    if (differentGuardian && (!childForm.guardianType || !guardianName || !guardianAddress.purok || !guardianAddress.barangay || !guardianAddress.cityMunicipality || !guardianAddress.province)) {
       setErrorMessage("Please complete the guardian type, guardian name, and required address details.");
       return;
     }
@@ -143,9 +170,9 @@ export default function UserPortal() {
         gender: childForm.gender as "Male" | "Female",
         weight: Number(childForm.weight),
         height: Number(childForm.height),
-        parentName: currentUser.name,
-        guardianType: childForm.guardianType,
-        motherName: childForm.motherName,
+        parentName: guardianName,
+        guardianType: differentGuardian ? childForm.guardianType : "Mother",
+        motherName: guardianName,
         fatherName: childForm.fatherName,
         address: formattedGuardianAddress,
         guardianAddress,
@@ -168,6 +195,8 @@ export default function UserPortal() {
         guardianAddress: createEmptyGuardianAddress(),
         allergies: "",
       });
+      setChildStep("child");
+      setDifferentGuardian(false);
       setErrorMessage("");
       setMessage("Child profile saved. The admin dashboard now uses this record.");
       setActiveDialog(null);
@@ -246,6 +275,14 @@ export default function UserPortal() {
 
   return (
     <div className="min-h-screen bg-background">
+      <GuardianDashboardOverview
+        currentUser={currentUser}
+        children={myChildren}
+        mealEntries={mealEntries}
+        growthData={growthData}
+        onOpenDialog={setActiveDialog}
+      />
+      <div className="hidden">
       <main className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:py-9">
         {currentUser?.verificationStatus === "pending" && (
           <div className="mb-5 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-foreground">
@@ -379,21 +416,27 @@ export default function UserPortal() {
           </div>
         </section>
       </main>
+      </div>
 
-      <Dialog open={activeDialog === "child"} onOpenChange={(open) => setActiveDialog(open ? "child" : null)}>
+      <Dialog open={activeDialog === "child"} onOpenChange={(open) => { setActiveDialog(open ? "child" : null); if (open) { setChildStep("child"); setDifferentGuardian(false); } }}>
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add Child Profile</DialogTitle>
-            <DialogDescription>Create a child record that appears in admin children lists and reports.</DialogDescription>
+            <DialogDescription>Step {childStep === "child" ? "1 of 2" : "2 of 2"} · {childStep === "child" ? "Enter the child information first." : "Add a different guardian only if needed."}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddChild} className="grid gap-4">
+            {childStep === "guardian" && (
             <div className="grid gap-3">
+              <div className="flex items-start gap-3 rounded-xl border border-[#dce9f8] bg-[#f4f8ff] p-3">
+                <input id="different-guardian" type="checkbox" checked={differentGuardian} onChange={(event) => setDifferentGuardian(event.target.checked)} className="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-ring" />
+                <label htmlFor="different-guardian" className="text-sm text-foreground"><span className="font-semibold">Guardian Information (Optional)</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">Check this box only if this child has a different guardian from your account.</span></label>
+              </div>
               <h3 className="text-sm font-semibold text-foreground">Guardian Information</h3>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className={`grid gap-4 sm:grid-cols-2 ${differentGuardian ? "" : "hidden"}`}>
                 <label className="text-sm text-foreground">
                   Type of Guardian
                   <select
-                    required
+                    required={differentGuardian}
                     value={childForm.guardianType}
                     onChange={(event) => setChildForm((current) => ({ ...current, guardianType: event.target.value as GuardianType }))}
                     className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
@@ -406,7 +449,7 @@ export default function UserPortal() {
                 <label className="text-sm text-foreground">
                   {guardianNameLabel}
                   <input
-                    required
+                    required={differentGuardian}
                     placeholder={guardianNamePlaceholder}
                     value={childForm.motherName}
                     onChange={(event) => setChildForm((current) => ({ ...current, motherName: event.target.value }))}
@@ -414,11 +457,11 @@ export default function UserPortal() {
                   />
                 </label>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className={`grid gap-4 sm:grid-cols-2 ${differentGuardian ? "" : "hidden"}`}>
                 <label className="text-sm text-foreground">
                   Purok
                   <input
-                    required
+                    required={differentGuardian}
                     value={childForm.guardianAddress.purok}
                     onChange={(event) => setChildForm((current) => ({ ...current, guardianAddress: { ...current.guardianAddress, purok: event.target.value } }))}
                     className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
@@ -443,7 +486,7 @@ export default function UserPortal() {
                 <label className="text-sm text-foreground">
                   Barangay
                   <input
-                    required
+                    required={differentGuardian}
                     value={childForm.guardianAddress.barangay}
                     onChange={(event) => setChildForm((current) => ({ ...current, guardianAddress: { ...current.guardianAddress, barangay: event.target.value } }))}
                     className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
@@ -452,7 +495,7 @@ export default function UserPortal() {
                 <label className="text-sm text-foreground">
                   City/Municipality
                   <input
-                    required
+                    required={differentGuardian}
                     value={childForm.guardianAddress.cityMunicipality}
                     onChange={(event) => setChildForm((current) => ({ ...current, guardianAddress: { ...current.guardianAddress, cityMunicipality: event.target.value } }))}
                     className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
@@ -461,7 +504,7 @@ export default function UserPortal() {
                 <label className="text-sm text-foreground">
                   Province
                   <input
-                    required
+                    required={differentGuardian}
                     value={childForm.guardianAddress.province}
                     onChange={(event) => setChildForm((current) => ({ ...current, guardianAddress: { ...current.guardianAddress, province: event.target.value } }))}
                     className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2.5"
@@ -473,8 +516,11 @@ export default function UserPortal() {
                   <p className="mt-1 text-xs text-muted-foreground">{assignedBhw.bhwName}</p>
                 </div>
               </div>
+              {!differentGuardian && <div className="rounded-xl border border-[#bfe9d5] bg-[#effcf5] px-4 py-3 text-sm text-[#35745a]">This child will use your guardian account information: <span className="font-semibold">{currentUser?.name}</span>.</div>}
             </div>
+            )}
 
+            {childStep === "child" && (
             <div className="grid gap-3">
               <h3 className="text-sm font-semibold text-foreground">Child Information</h3>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -566,12 +612,17 @@ export default function UserPortal() {
                 </label>
               </div>
             </div>
+            )}
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setActiveDialog(null)}>
-                Cancel
-              </Button>
-              <Button type="submit">Save Child Profile</Button>
+              {childStep === "child" ? <>
+                <Button type="button" variant="outline" onClick={() => setActiveDialog(null)}>Cancel</Button>
+                <Button type="button" onClick={() => setChildStep("guardian")} disabled={!canProceedToGuardian}>Next: Guardian Information</Button>
+              </> : <>
+                <Button type="button" variant="outline" onClick={() => setChildStep("child")}>Back</Button>
+                <Button type="button" variant="outline" onClick={() => setActiveDialog(null)}>Cancel</Button>
+                <Button type="submit">Save Child Profile</Button>
+              </>}
             </DialogFooter>
           </form>
         </DialogContent>

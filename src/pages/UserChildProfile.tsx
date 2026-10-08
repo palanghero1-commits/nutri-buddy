@@ -1,4 +1,4 @@
-import { Activity, CalendarDays, HeartPulse, Ruler, Scale, Salad, TrendingUp, UserRound } from "lucide-react";
+import { Activity, CalendarDays, HeartPulse, Ruler, Scale, Salad, ShieldCheck, TrendingUp } from "lucide-react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ export default function UserChildProfile() {
   }
 
   const childAge = child.ageDisplay || formatChildAge(child.birthDate) || `${child.age} years old`;
-  const childGrowth = growthData[child.id] ?? [];
+  const childGrowth = [...(growthData[child.id] ?? [])].sort((a, b) => a.date.localeCompare(b.date));
   const childMeals = mealEntries.filter((meal) => meal.childId === child.id).slice(0, 6);
   const latestGrowth = childGrowth.at(-1);
 
@@ -69,7 +69,7 @@ export default function UserChildProfile() {
             </div>
           </div>
 
-          <div className="section-enter stagger-1 rounded-xl border border-border/70 bg-card p-5 shadow-sm">
+          <div className="section-enter stagger-1 rounded-[22px] border border-[#e1eaf8] bg-white p-5 shadow-[0_8px_24px_rgba(68,116,177,0.06)]">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="font-semibold text-foreground">Profile Details</h2>
@@ -99,31 +99,15 @@ export default function UserChildProfile() {
         </section>
 
         <section className="mt-5 grid gap-5 lg:grid-cols-2">
-          <div className="section-enter stagger-2 rounded-xl border border-border/70 bg-card p-5 shadow-sm">
+          <div className="section-enter stagger-2 rounded-[22px] border border-[#e1eaf8] bg-white p-5 shadow-[0_8px_24px_rgba(68,116,177,0.06)]">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="font-semibold text-foreground">Guardian Information</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Guardian details linked to this profile.</p>
+                <h2 className="font-semibold text-foreground">Care Assignment</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Health-center assignment for this child.</p>
               </div>
-              <UserRound className="h-5 w-5 text-muted-foreground" />
+              <ShieldCheck className="h-5 w-5 text-muted-foreground" />
             </div>
             <dl className="mt-5 grid gap-3 text-sm">
-              <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
-                <dt className="text-muted-foreground">Mother's Name</dt>
-                <dd className="font-medium text-foreground">{child.motherName || child.parentName}</dd>
-              </div>
-              <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
-                <dt className="text-muted-foreground">Father's Name</dt>
-                <dd className="font-medium text-foreground">{child.fatherName || "Not recorded"}</dd>
-              </div>
-              <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
-                <dt className="text-muted-foreground">Guardian</dt>
-                <dd className="font-medium text-foreground">{child.parentName}</dd>
-              </div>
-              <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
-                <dt className="text-muted-foreground">Type of Guardian</dt>
-                <dd className="font-medium text-foreground">{child.guardianType || "Not recorded"}</dd>
-              </div>
               <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
                 <dt className="text-muted-foreground">Assigned Area</dt>
                 <dd className="text-right font-medium text-foreground">{child.assignedArea || "Not assigned"}</dd>
@@ -131,10 +115,6 @@ export default function UserChildProfile() {
               <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
                 <dt className="text-muted-foreground">Assigned BHW</dt>
                 <dd className="text-right font-medium text-foreground">{child.assignedBhwName || "Not assigned"}</dd>
-              </div>
-              <div className="flex justify-between gap-4 rounded-lg bg-muted/60 p-3">
-                <dt className="text-muted-foreground">Address</dt>
-                <dd className="text-right font-medium text-foreground">{child.address || "Not recorded"}</dd>
               </div>
             </dl>
           </div>

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useNutriData } from "@/hooks/useNutriData";
+import { normalizeGrowthDateInput } from "@/lib/featureGuard";
 
 const currentMonth = new Date().toISOString().slice(0, 7);
 
@@ -70,7 +71,7 @@ export default function UserGrowthPage() {
 
     addGrowthRecord({
       childId: growthForm.childId,
-      date: growthForm.date,
+      date: normalizeGrowthDateInput(growthForm.date),
       weight: Number(growthForm.weight),
       height: Number(growthForm.height),
     });

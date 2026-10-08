@@ -307,6 +307,9 @@ async function ensureUserRoleEnum(connection) {
 }
 
 export async function seedDefaultUsers(connectionOrPool) {
+  // Demo credentials are for local development only. Never create or reset them in production.
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL) return;
+
   await connectionOrPool.query(
     `INSERT INTO users (name, email, password_hash, role, designation, assigned_area)
      VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?)
